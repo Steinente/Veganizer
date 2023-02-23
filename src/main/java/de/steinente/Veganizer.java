@@ -4,6 +4,7 @@ import de.steinente.listeners.BanListener;
 import de.steinente.listeners.ChatListener;
 import de.steinente.listeners.InteractionListener;
 import de.steinente.listeners.VoiceListener;
+import de.steinente.utils.LiteSQL;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -24,6 +25,7 @@ public class Veganizer {
     public final static Color RED = new Color(221, 44, 0);
 
     public static void main(String[] args) {
+        LiteSQL.connect();
         final JDABuilder builder = JDABuilder.createDefault(System.getenv("token"));
 
         builder.setActivity(Activity.watching("auf die Stage."));
