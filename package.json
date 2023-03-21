@@ -1,0 +1,20 @@
+{
+  "name": "veganizer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/veganizer.ts",
+  "scripts": {
+    "start": "ts-node src/veganizer.ts"
+  },
+  "author": "Steinente",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.7.1",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^18.14.6",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.5"
+  }
+}
