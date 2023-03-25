@@ -1,7 +1,7 @@
 import { ChannelType, Client, Embed, EmbedBuilder, Events, Message, TextChannel } from 'discord.js'
 import Data from 'src/interfaces/data'
 import { MOVE_MEMBERS_PERMISSION, SERVER_ID, STAGE_TRACKING_CHANNEL_ID } from '../veganizer'
-import { fixMessageIfBugged, getStageChannel, manageSummary } from './interaction-listener'
+import { appendLog, fixMessageIfBugged, getStageChannel, manageSummary } from './interaction-listener'
 import { dataArray, findDataIndex } from './voice-listener'
 
 export default (client: Client): void => {
@@ -18,11 +18,12 @@ export default (client: Client): void => {
         fixMessageIfBugged(referencedMessage)
         if (message.content === '!rmpp' || message.content === '!removeprofilepicture') {
           const embed: Embed = referencedMessage.embeds[0]
+          const targetUserId = embed.fields[1].value
           const data: Data =
             dataArray[
-              findDataIndex(embed.fields[1].value, getStageChannel(referencedMessage.guild.channels.cache, embed)) ??
-                null
+              findDataIndex(targetUserId, getStageChannel(referencedMessage.guild.channels.cache, embed)) ?? null
             ]
+          appendLog(referencedMessage, embed, message.member!.user, targetUserId, 'Removed picture')
           referencedMessage.edit({ embeds: [new EmbedBuilder(embed.data).setThumbnail(null)] })
           if (referencedMessage.id === data?.message?.id) data.embedBuilder!.setThumbnail(null)
         } else if (message.content.length < 4 || message.content.length > 512) {

@@ -330,7 +330,7 @@ async function replyNotOnServer(button: ButtonInteraction): Promise<void> {
   await button.reply({ content: 'User is currently not on the server.', ephemeral: true })
 }
 
-async function appendLog(
+export async function appendLog(
   message: Message,
   embed: Embed,
   user: User,
