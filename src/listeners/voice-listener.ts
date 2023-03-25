@@ -9,7 +9,7 @@ import {
   Events,
   GuildMember,
   Message,
-  PermissionsBitField,
+  PermissionFlagsBits,
   StageChannel,
   TextChannel,
   User,
@@ -18,22 +18,6 @@ import Data from '../interfaces/data'
 import { SERVER_ID, STAGE_TRACKING_CHANNEL_ID, TALK_ROLE_ID, VOID_ROLE_ID } from '../veganizer'
 
 export const dataArray: Data[] = []
-const summaryButton: ButtonBuilder = new ButtonBuilder()
-  .setCustomId('summary-button')
-  .setLabel('Add Summary')
-  .setStyle(ButtonStyle.Primary)
-const talkButton: ButtonBuilder = new ButtonBuilder()
-  .setCustomId('talk-button')
-  .setLabel('Add Talk')
-  .setStyle(ButtonStyle.Success)
-const voidButton: ButtonBuilder = new ButtonBuilder()
-  .setCustomId('void-button')
-  .setLabel('Add Void')
-  .setStyle(ButtonStyle.Secondary)
-const banButton: ButtonBuilder = new ButtonBuilder()
-  .setCustomId('ban-button')
-  .setLabel('Ban')
-  .setStyle(ButtonStyle.Danger)
 
 export default (client: Client): void => {
   client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
@@ -43,11 +27,19 @@ export default (client: Client): void => {
       null !== oldState.requestToSpeakTimestamp &&
       null === newState.requestToSpeakTimestamp &&
       !newState.suppress &&
-      !newState.member?.permissions.has(PermissionsBitField.Flags.MoveMembers)
+      !newState.member?.permissions.has(PermissionFlagsBits.MoveMembers)
     ) {
       const member: GuildMember = newState.member!
       const user: User = member.user
       const channel: StageChannel = newState.channel
+      let initialTalkButton: ButtonBuilder = new ButtonBuilder()
+        .setCustomId('talk-button')
+        .setLabel('Add Talk')
+        .setStyle(ButtonStyle.Success)
+      let initialVoidButton: ButtonBuilder = new ButtonBuilder()
+        .setCustomId('void-button')
+        .setLabel('Add Void')
+        .setStyle(ButtonStyle.Secondary)
 
       const embedBuilder: EmbedBuilder = new EmbedBuilder()
         .setTitle(`${member.displayName} joined ${member.voice.channel!.name}`)
@@ -64,22 +56,21 @@ export default (client: Client): void => {
           { name: 'User-ID', value: member.id, inline: true }
         )
 
-      const initialTalkButton: ButtonBuilder = member.roles.cache.some(role => role.id === TALK_ROLE_ID)
-        ? talkButton.setLabel('Remove Talk')
-        : talkButton
-      const initialVoidButton: ButtonBuilder = member.roles.cache.some(role => role.id === VOID_ROLE_ID)
-        ? voidButton.setLabel('Remove Void')
-        : voidButton
+      for (const role of member.roles.cache.values()) {
+        if (role.id === TALK_ROLE_ID) initialTalkButton = initialTalkButton.setLabel('Remove Talk')
+        if (role.id === VOID_ROLE_ID) initialVoidButton = initialVoidButton.setLabel('Remove Void')
+        if (initialTalkButton.data.label === 'Remove Talk' && initialVoidButton.data.label === 'Remove Void') break
+      }
 
       const message: Message = await (newState.guild.channels.cache.get(STAGE_TRACKING_CHANNEL_ID) as TextChannel).send(
         {
           embeds: [embedBuilder],
           components: [
             new ActionRowBuilder<ButtonBuilder>().addComponents(
-              summaryButton,
+              new ButtonBuilder().setCustomId('summary-button').setLabel('Add Summary').setStyle(ButtonStyle.Primary),
               initialTalkButton,
               initialVoidButton,
-              banButton
+              new ButtonBuilder().setCustomId('ban-button').setLabel('Ban').setStyle(ButtonStyle.Danger)
             ),
           ],
         }
@@ -97,8 +88,9 @@ export default (client: Client): void => {
       dataArray.push(newData)
       startTrackingMessageTimer(newData)
     } else if (oldState.channel?.type === ChannelType.GuildStageVoice) {
-      if ( // leave Stage
-        (!oldState.member?.permissions.has(PermissionsBitField.Flags.MoveMembers) &&
+      if (
+        // leave Stage
+        (!oldState.member?.permissions.has(PermissionFlagsBits.MoveMembers) &&
           null === oldState.requestToSpeakTimestamp &&
           newState.suppress) ||
         (null !== oldState.channelId && null === newState.channelId)
@@ -116,7 +108,7 @@ export default (client: Client): void => {
 
 export function onLeaveStage(data: Data): void {
   data.embedBuilder!.setColor(Colors.Red)
-  updateTrackingMessage(data)
+  updateTrackingMessage(data, true)
   clear(data)
 }
 
@@ -130,11 +122,11 @@ function startTrackingMessageTimer(newData: Data): void {
   const data: Data = dataArray[dataIndex]
 
   data.timer = setInterval(() => {
-    updateTrackingMessage(data)
+    updateTrackingMessage(data, false)
   }, 5 * 1000)
 }
 
-function updateTrackingMessage(data: Data): void {
+function updateTrackingMessage(data: Data, isLeaving: boolean): void {
   const secs = Math.floor((Date.now() - data.startTime!) / 1000)
   const min = Math.floor((secs % 3600) / 60)
   const hours = Math.floor(secs / 3600)
@@ -143,7 +135,7 @@ function updateTrackingMessage(data: Data): void {
       .toString()
       .padStart(2, '0')}`
   )
-  if (hours >= 1) data.embedBuilder!.setColor(Colors.Yellow)
+  if (hours >= 1 && !isLeaving) data.embedBuilder!.setColor(Colors.Yellow)
   updateTrackingMessageEmbed(data)
 }
 
