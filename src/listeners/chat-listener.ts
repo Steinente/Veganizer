@@ -13,7 +13,7 @@ export default (client: Client): void => {
     if (null === referencedMessage.embeds[0]) return
     await message.delete().then(() => {
       if (
-        referencedMessage.guild.members.cache.get(referencedMessage.author.id)!.permissions.has(MOVE_MEMBERS_PERMISSION)
+        referencedMessage.guild.members.cache.get(message.author.id)!.permissions.has(MOVE_MEMBERS_PERMISSION)
       ) {
         fixMessageIfBugged(referencedMessage)
         if (message.content === '!fix') {
