@@ -32,6 +32,7 @@ export default (client: Client): void => {
       const member: GuildMember = newState.member!
       const user: User = member.user
       const channel: StageChannel = newState.channel
+      const avatar = user.displayAvatarURL({ forceStatic: true })
       let initialTalkButton: ButtonBuilder = new ButtonBuilder()
         .setCustomId('talk-button')
         .setLabel('Add Talk')
@@ -46,7 +47,7 @@ export default (client: Client): void => {
         .setDescription('Time on Stage: 00:00:00')
         .setTimestamp(new Date())
         .setColor(Colors.Green)
-        .setThumbnail(user.displayAvatarURL({ forceStatic: true }).replace('.png', '.webp?size=256'))
+        .setThumbnail(avatar === user.defaultAvatarURL ? avatar : avatar.replace('.png', '.webp?size=256'))
         .setFooter({
           text: `${newState.client.user.username} by Steinente`,
           iconURL: newState.client.user.displayAvatarURL({ forceStatic: true }),
