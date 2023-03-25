@@ -26,7 +26,15 @@ import {
   User,
 } from 'discord.js'
 import Data from 'src/interfaces/data'
-import { BAN_MEMBERS_PERMISSION, MANAGE_ROLES_PERMISSION, MOVE_MEMBERS_PERMISSION, NEW_ROLE_ID, SERVER_ID, TALK_ROLE_ID, VOID_ROLE_ID } from '../veganizer'
+import {
+  BAN_MEMBERS_PERMISSION,
+  MANAGE_ROLES_PERMISSION,
+  MOVE_MEMBERS_PERMISSION,
+  NEW_ROLE_ID,
+  SERVER_ID,
+  TALK_ROLE_ID,
+  VOID_ROLE_ID,
+} from '../veganizer'
 import { dataArray, findDataIndex } from './voice-listener'
 
 export default (client: Client): void => {
