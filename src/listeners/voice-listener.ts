@@ -15,7 +15,7 @@ import {
   User,
 } from 'discord.js'
 import Data from '../interfaces/data'
-import { SERVER_ID, STAGE_TRACKING_CHANNEL_ID, TALK_ROLE_ID, VOID_ROLE_ID } from '../veganizer'
+import { SERVER_ID, STAGE_TRACKING_CHANNEL_ID, TALK_ROLE_ID, VOID_ROLE_ID, WHITE_MARK_EMOJI_ID } from '../veganizer'
 
 export const dataArray: Data[] = []
 
@@ -33,15 +33,6 @@ export default (client: Client): void => {
       const user: User = member.user
       const channel: StageChannel = newState.channel
       const avatar = user.displayAvatarURL({ forceStatic: true })
-      let initialTalkButton: ButtonBuilder = new ButtonBuilder()
-        .setCustomId('talk-button')
-        .setLabel('Add Talk')
-        .setStyle(ButtonStyle.Success)
-      let initialVoidButton: ButtonBuilder = new ButtonBuilder()
-        .setCustomId('void-button')
-        .setLabel('Add Void')
-        .setStyle(ButtonStyle.Secondary)
-
       const embedBuilder: EmbedBuilder = new EmbedBuilder()
         .setTitle(`${member.displayName} joined ${member.voice.channel!.name}`)
         .setDescription('Time on Stage: 00:00:00')
@@ -56,6 +47,14 @@ export default (client: Client): void => {
           { name: 'User', value: member.toString(), inline: true },
           { name: 'User-ID', value: member.id, inline: true }
         )
+      let initialTalkButton: ButtonBuilder = new ButtonBuilder()
+        .setCustomId('talk-button')
+        .setLabel('Add Talk')
+        .setStyle(ButtonStyle.Success)
+      let initialVoidButton: ButtonBuilder = new ButtonBuilder()
+        .setCustomId('void-button')
+        .setLabel('Add Void')
+        .setStyle(ButtonStyle.Secondary)
 
       for (const role of member.roles.cache.values()) {
         if (role.id === TALK_ROLE_ID) initialTalkButton = initialTalkButton.setLabel('Remove Talk')
@@ -63,17 +62,21 @@ export default (client: Client): void => {
         if (initialTalkButton.data.label === 'Remove Talk' && initialVoidButton.data.label === 'Remove Void') break
       }
 
+      const buttonBuilders: ButtonBuilder[] = [
+        new ButtonBuilder().setCustomId('summary-button').setLabel('Add Summary').setStyle(ButtonStyle.Primary),
+        initialTalkButton,
+        initialVoidButton,
+        new ButtonBuilder().setCustomId('ban-button').setLabel('Ban').setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+          .setCustomId('mod-button')
+          .setEmoji(WHITE_MARK_EMOJI_ID)
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(),
+      ]
       const message: Message = await (newState.guild.channels.cache.get(STAGE_TRACKING_CHANNEL_ID) as TextChannel).send(
         {
           embeds: [embedBuilder],
-          components: [
-            new ActionRowBuilder<ButtonBuilder>().addComponents(
-              new ButtonBuilder().setCustomId('summary-button').setLabel('Add Summary').setStyle(ButtonStyle.Primary),
-              initialTalkButton,
-              initialVoidButton,
-              new ButtonBuilder().setCustomId('ban-button').setLabel('Ban').setStyle(ButtonStyle.Danger)
-            ),
-          ],
+          components: [new ActionRowBuilder<ButtonBuilder>().addComponents(buttonBuilders)],
         }
       )
 
@@ -82,6 +85,7 @@ export default (client: Client): void => {
         channel,
         message,
         embedBuilder,
+        buttonBuilders,
         startTime: new Date().getTime(),
         timer: null,
       }
@@ -137,13 +141,17 @@ function updateTrackingMessage(data: Data, isLeaving: boolean): void {
       .padStart(2, '0')}`
   )
   if (hours >= 1 && !isLeaving) data.embedBuilder!.setColor(Colors.Yellow)
-  updateTrackingMessageEmbed(data)
+  updateTrackingMessageEmbed(data, isLeaving)
 }
 
-function updateTrackingMessageEmbed(data: Data): void {
+function updateTrackingMessageEmbed(data: Data, isLeaving: boolean): void {
   if (!data.message) return
+  data.buttonBuilders[4].setDisabled(!isLeaving)
   data.message
-    .edit({ embeds: [data.embedBuilder!] })
+    .edit({
+      embeds: [data.embedBuilder!],
+      components: [new ActionRowBuilder<ButtonBuilder>().addComponents(data.buttonBuilders)],
+    })
     .then(message => (data.message = message))
     .catch(() => clear(data))
 }

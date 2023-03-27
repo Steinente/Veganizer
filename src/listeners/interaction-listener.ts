@@ -34,6 +34,7 @@ import {
   SERVER_ID,
   TALK_ROLE_ID,
   VOID_ROLE_ID,
+  WHITE_MARK_EMOJI_ID,
 } from '../veganizer'
 import { dataArray, findDataIndex } from './voice-listener'
 
@@ -59,6 +60,10 @@ export default (client: Client): void => {
       const targetMember = await guild.members.fetch(targetUserId).catch(() => {})
       const components: MessageActionRowComponent[] = message.components[0].components
       const label = buttonInteraction.component.label
+      const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
+      const dataIndex = findDataIndex(targetUserId, stageChannel)
+      const data: Data = dataArray[dataIndex] ?? null
+      const isOnStage: boolean = message.id === data?.message?.id
 
       switch (buttonInteraction.customId) {
         case 'summary-button':
@@ -82,13 +87,15 @@ export default (client: Client): void => {
               if (label === 'Add Talk') {
                 if (hasTalk) {
                   await buttonInteraction.reply({ content: 'User already has Talk.', ephemeral: true }).then(() => {
+                    if (isOnStage) data.buttonBuilders[1].setLabel('Remove Talk')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
                           new ButtonBuilder(components[1].data).setLabel('Remove Talk'),
                           new ButtonBuilder(components[2].data),
-                          new ButtonBuilder(components[3].data)
+                          new ButtonBuilder(components[3].data),
+                          new ButtonBuilder(components[4].data)
                         ),
                       ],
                     })
@@ -96,14 +103,16 @@ export default (client: Client): void => {
                 } else {
                   await targetMember.roles.add(talkRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Added Talk')
+                    if (isOnStage) data.buttonBuilders[1].setLabel('Remove Talk')
                     message.edit({
-                      embeds: [embed],
+                      embeds: [getColoredEmbed(embed, isOnStage, data)],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
                           new ButtonBuilder(components[1].data).setLabel('Remove Talk'),
                           new ButtonBuilder(components[2].data),
-                          new ButtonBuilder(components[3].data)
+                          new ButtonBuilder(components[3].data),
+                          new ButtonBuilder(components[4].data)
                         ),
                       ],
                     })
@@ -114,14 +123,16 @@ export default (client: Client): void => {
                 if (hasTalk) {
                   await targetMember.roles.remove(talkRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Removed Talk')
+                    if (isOnStage) data.buttonBuilders[1].setLabel('Add Talk')
                     message.edit({
-                      embeds: [embed],
+                      embeds: [getColoredEmbed(embed, isOnStage, data)],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
                           new ButtonBuilder(components[1].data).setLabel('Add Talk'),
                           new ButtonBuilder(components[2].data),
-                          new ButtonBuilder(components[3].data)
+                          new ButtonBuilder(components[3].data),
+                          new ButtonBuilder(components[4].data)
                         ),
                       ],
                     })
@@ -129,13 +140,15 @@ export default (client: Client): void => {
                   buttonInteraction.deferUpdate()
                 } else {
                   await buttonInteraction.reply({ content: "User doesn't have Talk.", ephemeral: true }).then(() => {
+                    if (isOnStage) data.buttonBuilders[1].setLabel('Add Talk')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
                           new ButtonBuilder(components[1].data).setLabel('Add Talk'),
                           new ButtonBuilder(components[2].data),
-                          new ButtonBuilder(components[3].data)
+                          new ButtonBuilder(components[3].data),
+                          new ButtonBuilder(components[4].data)
                         ),
                       ],
                     })
@@ -153,13 +166,15 @@ export default (client: Client): void => {
               if (label === 'Add Void') {
                 if (hasVoid) {
                   await buttonInteraction.reply({ content: 'User already has Void.', ephemeral: true }).then(() => {
+                    if (isOnStage) data.buttonBuilders[2].setLabel('Remove Void')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
                           new ButtonBuilder(components[1].data),
                           new ButtonBuilder(components[2].data).setLabel('Remove Void'),
-                          new ButtonBuilder(components[3].data)
+                          new ButtonBuilder(components[3].data),
+                          new ButtonBuilder(components[4].data)
                         ),
                       ],
                     })
@@ -167,14 +182,19 @@ export default (client: Client): void => {
                 } else {
                   await targetMember.roles.add(voidRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Added Void')
+                    if (isOnStage) {
+                      data.buttonBuilders[1].setLabel('Add Talk')
+                      data.buttonBuilders[2].setLabel('Remove Void')
+                    }
                     message.edit({
-                      embeds: [embed],
+                      embeds: [getColoredEmbed(embed, isOnStage, data)],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
-                          new ButtonBuilder(components[1].data),
+                          new ButtonBuilder(components[1].data).setLabel('Add Talk'),
                           new ButtonBuilder(components[2].data).setLabel('Remove Void'),
-                          new ButtonBuilder(components[3].data)
+                          new ButtonBuilder(components[3].data),
+                          new ButtonBuilder(components[4].data)
                         ),
                       ],
                     })
@@ -187,14 +207,16 @@ export default (client: Client): void => {
                 if (hasVoid) {
                   await targetMember.roles.remove(voidRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Removed Void')
+                    if (isOnStage) data.buttonBuilders[2].setLabel('Add Void')
                     message.edit({
-                      embeds: [embed],
+                      embeds: [getColoredEmbed(embed, isOnStage, data)],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
                           new ButtonBuilder(components[1].data),
                           new ButtonBuilder(components[2].data).setLabel('Add Void'),
-                          new ButtonBuilder(components[3].data)
+                          new ButtonBuilder(components[3].data),
+                          new ButtonBuilder(components[4].data)
                         ),
                       ],
                     })
@@ -202,13 +224,15 @@ export default (client: Client): void => {
                   buttonInteraction.deferUpdate()
                 } else {
                   await buttonInteraction.reply({ content: "User doesn't have Void.", ephemeral: true }).then(() => {
+                    if (isOnStage) data.buttonBuilders[2].setLabel('Add Void')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
                           new ButtonBuilder(components[1].data),
                           new ButtonBuilder(components[2].data).setLabel('Add Void'),
-                          new ButtonBuilder(components[3].data)
+                          new ButtonBuilder(components[3].data),
+                          new ButtonBuilder(components[4].data)
                         ),
                       ],
                     })
@@ -224,16 +248,19 @@ export default (client: Client): void => {
             const isBanned = banList?.some(ban => ban.user.id === targetUserId) ?? false
             if (label === 'Ban') {
               if (isBanned) {
-                await buttonInteraction.reply({ content: 'User is already banned.', ephemeral: true })
-                await message.edit({
-                  components: [
-                    new ActionRowBuilder<ButtonBuilder>().addComponents(
-                      new ButtonBuilder(components[0].data),
-                      new ButtonBuilder(components[1].data),
-                      new ButtonBuilder(components[2].data),
-                      new ButtonBuilder(components[3].data).setLabel('Unban')
-                    ),
-                  ],
+                await buttonInteraction.reply({ content: 'User is already banned.', ephemeral: true }).then(() => {
+                  if (isOnStage) data.buttonBuilders[3].setLabel('Unban')
+                  message.edit({
+                    components: [
+                      new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        new ButtonBuilder(components[0].data),
+                        new ButtonBuilder(components[1].data),
+                        new ButtonBuilder(components[2].data),
+                        new ButtonBuilder(components[3].data).setLabel('Unban'),
+                        new ButtonBuilder(components[4].data)
+                      ),
+                    ],
+                  })
                 })
               } else {
                 createModalBuilder(
@@ -249,6 +276,7 @@ export default (client: Client): void => {
               if (isBanned) {
                 guild.members.unban(targetUserId).then(() => {
                   appendLog(message, embed, user, targetUserId, 'Unbanned')
+                  if (isOnStage) data.buttonBuilders[3].setLabel('Ban')
                   message.edit({
                     embeds: [embed],
                     components: [
@@ -256,27 +284,49 @@ export default (client: Client): void => {
                         new ButtonBuilder(components[0].data),
                         new ButtonBuilder(components[1].data),
                         new ButtonBuilder(components[2].data),
-                        new ButtonBuilder(components[3].data).setLabel('Ban')
+                        new ButtonBuilder(components[3].data).setLabel('Ban'),
+                        new ButtonBuilder(components[4].data)
                       ),
                     ],
                   })
                   buttonInteraction.deferUpdate()
                 })
               } else {
-                await buttonInteraction.reply({ content: 'User is already unbanned.', ephemeral: true })
-                await message.edit({
-                  components: [
-                    new ActionRowBuilder<ButtonBuilder>().addComponents(
-                      new ButtonBuilder(components[0].data),
-                      new ButtonBuilder(components[1].data),
-                      new ButtonBuilder(components[2].data),
-                      new ButtonBuilder(components[3].data).setLabel('Ban')
-                    ),
-                  ],
+                await buttonInteraction.reply({ content: 'User is already unbanned.', ephemeral: true }).then(() => {
+                  if (isOnStage) data.buttonBuilders[3].setLabel('Ban')
+                  message.edit({
+                    components: [
+                      new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        new ButtonBuilder(components[0].data),
+                        new ButtonBuilder(components[1].data),
+                        new ButtonBuilder(components[2].data),
+                        new ButtonBuilder(components[3].data).setLabel('Ban'),
+                        new ButtonBuilder(components[4].data)
+                      ),
+                    ],
+                  })
                 })
               }
             }
           } else replyNoPermissions(buttonInteraction)
+          break
+        default:
+          if (buttonInteraction.component.emoji?.id === WHITE_MARK_EMOJI_ID) {
+            if (isOnStage) data.buttonBuilders[4].setDisabled()
+            message.edit({
+              embeds: [getColoredEmbed(embed, isOnStage, data)],
+              components: [
+                new ActionRowBuilder<ButtonBuilder>().addComponents(
+                  new ButtonBuilder(components[0].data),
+                  new ButtonBuilder(components[1].data),
+                  new ButtonBuilder(components[2].data),
+                  new ButtonBuilder(components[3].data),
+                  new ButtonBuilder(components[4].data).setDisabled()
+                ),
+              ],
+            })
+            buttonInteraction.deferUpdate()
+          }
           break
       }
       fixMessageIfBugged(message)
@@ -286,6 +336,10 @@ export default (client: Client): void => {
       const embed: Embed = message.embeds[0]
       const targetUserId: string = embed.fields[1].value
       const components: MessageActionRowComponent[] = message.components[0].components
+      const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
+      const dataIndex = findDataIndex(targetUserId, stageChannel)
+      const data: Data = dataArray[dataIndex] ?? null
+      const isOnStage: boolean = message.id === data?.message?.id
 
       switch (modalSubmitInteraction.customId) {
         case 'summary-modal':
@@ -303,14 +357,19 @@ export default (client: Client): void => {
         case 'ban-modal':
           guild.members.ban(targetUserId).then(() => {
             appendLog(message, embed, user, targetUserId, 'Banned')
+            if (isOnStage) {
+              data.buttonBuilders[3].setLabel('Unban')
+              data.buttonBuilders[4].setDisabled()
+            }
             message.edit({
-              embeds: [new EmbedBuilder(embed.data).setColor(Colors.Red)],
+              embeds: [getColoredEmbed(embed, isOnStage, data, true)],
               components: [
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
                   new ButtonBuilder(components[0].data),
                   new ButtonBuilder(components[1].data),
                   new ButtonBuilder(components[2].data),
-                  new ButtonBuilder(components[3].data).setLabel('Unban')
+                  new ButtonBuilder(components[3].data).setLabel('Unban'),
+                  new ButtonBuilder(components[4].data).setDisabled()
                 ),
               ],
             })
@@ -462,6 +521,7 @@ export async function manageSummary(
     }
 
     appendLog(message, embed, user, targetUserId, 'Added Summary')
+    if (isOnStage) data.buttonBuilders[0].setLabel('Edit Summary')
     await message.edit({
       embeds: [embed],
       components: [
@@ -469,7 +529,8 @@ export async function manageSummary(
           new ButtonBuilder(components[0].data).setLabel('Edit Summary'),
           new ButtonBuilder(components[1].data),
           new ButtonBuilder(components[2].data),
-          new ButtonBuilder(components[3].data)
+          new ButtonBuilder(components[3].data),
+          new ButtonBuilder(components[4].data)
         ),
       ],
     })
@@ -480,5 +541,14 @@ export async function manageSummary(
     await message.edit({
       embeds: [embed],
     })
+  }
+}
+
+function getColoredEmbed(embed: Embed, isOnStage: boolean, data: Data, isBan: boolean = false): EmbedBuilder {
+  if (embed.color === Colors.Red || isBan) {
+    if (isOnStage) data.embedBuilder?.setColor(Colors.Blue)
+    return new EmbedBuilder(embed.data).setColor(Colors.Blue)
+  } else {
+    return new EmbedBuilder(embed.data)
   }
 }

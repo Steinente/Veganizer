@@ -11,9 +11,10 @@ export const NEW_ROLE_ID: string = process.env.NEW_ROLE_ID!
 export const TALK_ROLE_ID: string = process.env.TALK_ROLE_ID!
 export const VOID_ROLE_ID: string = process.env.VOID_ROLE_ID!
 export const STAGE_TRACKING_CHANNEL_ID: string = process.env.STAGE_TRACKING_CHANNEL_ID!
-export const MOVE_MEMBERS_PERMISSION = PermissionFlagsBits.MoveMembers
-export const MANAGE_ROLES_PERMISSION = PermissionFlagsBits.ManageRoles
-export const BAN_MEMBERS_PERMISSION = PermissionFlagsBits.BanMembers
+export const MOVE_MEMBERS_PERMISSION: bigint = PermissionFlagsBits.MoveMembers
+export const MANAGE_ROLES_PERMISSION: bigint = PermissionFlagsBits.ManageRoles
+export const BAN_MEMBERS_PERMISSION: bigint = PermissionFlagsBits.BanMembers
+export const WHITE_MARK_EMOJI_ID: string = '1089867992189382667'
 
 const client = new Client({
   intents: [
@@ -29,4 +30,7 @@ VoiceListener(client)
 InteractionListener(client)
 ChatListener(client)
 
-client.login(process.env.TOKEN).then(() => client.user!.setActivity('auf die Stage.', { type: ActivityType.Watching }))
+client.login(process.env.TOKEN).then(() => {
+  console.log('Bot started')
+  client.user!.setActivity('auf die Stage.', { type: ActivityType.Watching })
+})
