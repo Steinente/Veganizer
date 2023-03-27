@@ -63,7 +63,7 @@ export default (client: Client): void => {
       const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
       const dataIndex = findDataIndex(targetUserId, stageChannel)
       const data: Data = dataArray[dataIndex] ?? null
-      const isOnStage: boolean = message.id === data?.message?.id
+      const isOnStage: boolean = message.id === data?.message.id
 
       switch (buttonInteraction.customId) {
         case 'summary-button':
@@ -339,7 +339,7 @@ export default (client: Client): void => {
       const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
       const dataIndex = findDataIndex(targetUserId, stageChannel)
       const data: Data = dataArray[dataIndex] ?? null
-      const isOnStage: boolean = message.id === data?.message?.id
+      const isOnStage: boolean = message.id === data?.message.id
 
       switch (modalSubmitInteraction.customId) {
         case 'summary-modal':
@@ -403,7 +403,7 @@ export async function appendLog(
   const stageChannel: StageChannel = getStageChannel(message.guild!.channels.cache, embed)
   const dataIndex = findDataIndex(targetUserId, stageChannel)
   const data: Data = dataArray[dataIndex] ?? null
-  const isUserOnStage: boolean = message.id === data?.message?.id
+  const isUserOnStage: boolean = message.id === data?.message.id
 
   if (oldLogField) {
     const newLogField = {
@@ -413,7 +413,7 @@ export async function appendLog(
     }
     if (newLogField.value.length <= 1024) {
       fields[logIndex] = newLogField
-      if (isUserOnStage) data.embedBuilder?.spliceFields(logIndex, 1, newLogField)
+      if (isUserOnStage) data.embedBuilder.spliceFields(logIndex, 1, newLogField)
     }
   } else {
     const newLogField = {
@@ -423,7 +423,7 @@ export async function appendLog(
     }
     if (newLogField.value.length <= 1024) {
       fields.push(newLogField)
-      if (isUserOnStage) data.embedBuilder?.addFields(newLogField)
+      if (isUserOnStage) data.embedBuilder.addFields(newLogField)
     }
   }
 }
@@ -472,7 +472,7 @@ export async function fixMessageIfBugged(message: Message) {
   const stageChannel: StageChannel = getStageChannel(message.guild!.channels.cache, embed)
   const dataIndex = findDataIndex(targetUserId, stageChannel)
   const data: Data = dataArray[dataIndex] ?? null
-  const isOnStage: boolean = message.id === data?.message?.id
+  const isOnStage: boolean = message.id === data?.message.id
   if (!isOnStage && (embed.color === Colors.Green || embed.color === Colors.Yellow)) {
     const embedBuilder: EmbedBuilder = new EmbedBuilder(embed.data)
       .setColor(Colors.Red)
@@ -497,7 +497,7 @@ export async function manageSummary(
   const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
   const dataIndex = findDataIndex(targetUserId, stageChannel)
   const data: Data = dataArray[dataIndex] ?? null
-  const isOnStage: boolean = message.id === data?.message?.id
+  const isOnStage: boolean = message.id === data?.message.id
   const summaryField = {
     name: `Summary by ${user.username}`,
     value: summary,
@@ -512,12 +512,12 @@ export async function manageSummary(
       fields[logIndex] = summaryField
       logIndex++
       if (isOnStage) {
-        data.embedBuilder?.addFields(fields[logIndex])
-        data.embedBuilder?.spliceFields(logIndex - 1, 1, summaryField)
+        data.embedBuilder.addFields(fields[logIndex])
+        data.embedBuilder.spliceFields(logIndex - 1, 1, summaryField)
       }
     } else {
       fields.push(summaryField)
-      if (isOnStage) data.embedBuilder?.addFields(summaryField)
+      if (isOnStage) data.embedBuilder.addFields(summaryField)
     }
 
     appendLog(message, embed, user, targetUserId, 'Added Summary')
@@ -536,7 +536,7 @@ export async function manageSummary(
     })
   } else {
     fields[summaryIndex] = summaryField
-    if (isOnStage) data.embedBuilder?.spliceFields(summaryIndex, 1, summaryField)
+    if (isOnStage) data.embedBuilder.spliceFields(summaryIndex, 1, summaryField)
     appendLog(message, embed, user, targetUserId, 'Edited Summary')
     await message.edit({
       embeds: [embed],
@@ -546,7 +546,7 @@ export async function manageSummary(
 
 function getColoredEmbed(embed: Embed, isOnStage: boolean, data: Data, isBan: boolean = false): EmbedBuilder {
   if (embed.color === Colors.Red || isBan) {
-    if (isOnStage) data.embedBuilder?.setColor(Colors.Blue)
+    if (isOnStage) data.embedBuilder.setColor(Colors.Blue)
     return new EmbedBuilder(embed.data).setColor(Colors.Blue)
   } else {
     return new EmbedBuilder(embed.data)

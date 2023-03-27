@@ -25,7 +25,7 @@ export default (client: Client): void => {
             ]
           appendLog(referencedMessage, embed, message.member!.user, targetUserId, 'Removed picture')
           referencedMessage.edit({ embeds: [new EmbedBuilder(embed.data).setThumbnail(null)] })
-          if (referencedMessage.id === data?.message?.id) data.embedBuilder!.setThumbnail(null)
+          if (referencedMessage.id === data?.message.id) data.embedBuilder.setThumbnail(null)
         } else if (message.content.length < 4 || message.content.length > 512) {
           reply(
             message,

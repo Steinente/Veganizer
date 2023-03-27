@@ -112,17 +112,17 @@ export default (client: Client): void => {
 }
 
 export function onLeaveStage(data: Data): void {
-  data.embedBuilder!.setColor(Colors.Red)
+  data.embedBuilder.setColor(Colors.Red)
   updateTrackingMessage(data, true)
   clear(data)
 }
 
 export function findDataIndex(userId: string | undefined, channel: StageChannel): number {
-  return dataArray.findIndex(data => data.member?.user.id === userId && data.channel?.id === channel.id)
+  return dataArray.findIndex(data => data.member.user.id === userId && data.channel.id === channel.id)
 }
 
 function startTrackingMessageTimer(newData: Data): void {
-  const dataIndex: number = findDataIndex(newData.member!.user.id, newData.channel!)
+  const dataIndex: number = findDataIndex(newData.member.user.id, newData.channel)
   if (dataIndex === -1) return
   const data: Data = dataArray[dataIndex]
 
@@ -132,24 +132,23 @@ function startTrackingMessageTimer(newData: Data): void {
 }
 
 function updateTrackingMessage(data: Data, isLeaving: boolean): void {
-  const secs = Math.floor((Date.now() - data.startTime!) / 1000)
+  const secs = Math.floor((Date.now() - data.startTime) / 1000)
   const min = Math.floor((secs % 3600) / 60)
   const hours = Math.floor(secs / 3600)
-  data.embedBuilder!.setDescription(
+  data.embedBuilder.setDescription(
     `Time on Stage: ${hours.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:${(secs % 60)
       .toString()
       .padStart(2, '0')}`
   )
-  if (hours >= 1 && !isLeaving) data.embedBuilder!.setColor(Colors.Yellow)
+  if (hours >= 1 && !isLeaving) data.embedBuilder.setColor(Colors.Yellow)
   updateTrackingMessageEmbed(data, isLeaving)
 }
 
 function updateTrackingMessageEmbed(data: Data, isLeaving: boolean): void {
-  if (!data.message) return
   data.buttonBuilders[4].setDisabled(!isLeaving)
   data.message
     .edit({
-      embeds: [data.embedBuilder!],
+      embeds: [data.embedBuilder],
       components: [new ActionRowBuilder<ButtonBuilder>().addComponents(data.buttonBuilders)],
     })
     .then(message => (data.message = message))
@@ -158,7 +157,7 @@ function updateTrackingMessageEmbed(data: Data, isLeaving: boolean): void {
 
 function clear(data: Data): void {
   data.timer && clearTimeout(data.timer)
-  const dataIndex: number = findDataIndex(data.member!.user.id, data.channel!)
+  const dataIndex: number = findDataIndex(data.member.user.id, data.channel)
   if (dataIndex === -1) return
   dataArray.splice(dataIndex, 1)
 }
