@@ -1,6 +1,6 @@
 import { ButtonBuilder, EmbedBuilder, GuildMember, Message, StageChannel } from 'discord.js'
 
-export default interface Data {
+export default interface Tracking {
   member: GuildMember
   channel: StageChannel
   message: Message

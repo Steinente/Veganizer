@@ -22,7 +22,7 @@
     },
     "files": [
         "src/veganizer.ts",
-        "src/interfaces/data.ts",
+        "src/interfaces/tracking.ts",
         "src/listeners/ban-listener.ts",
         "src/listeners/chat-listener.ts",
         "src/listeners/interaction-listener.ts",

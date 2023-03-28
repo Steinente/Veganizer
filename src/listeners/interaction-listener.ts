@@ -25,7 +25,7 @@ import {
   TextInputStyle,
   User,
 } from 'discord.js'
-import Data from 'src/interfaces/data'
+import Tracking from 'src/interfaces/tracking'
 import {
   BAN_MEMBERS_PERMISSION,
   MANAGE_ROLES_PERMISSION,
@@ -36,7 +36,7 @@ import {
   VOID_ROLE_ID,
   WHITE_MARK_EMOJI_ID,
 } from '../veganizer'
-import { dataArray, findDataIndex } from './voice-listener'
+import { trackingArray, findTrackingIndex } from './voice-listener'
 
 export default (client: Client): void => {
   client.on(Events.InteractionCreate, async interaction => {
@@ -61,9 +61,9 @@ export default (client: Client): void => {
       const components: MessageActionRowComponent[] = message.components[0].components
       const label = buttonInteraction.component.label
       const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
-      const dataIndex = findDataIndex(targetUserId, stageChannel)
-      const data: Data = dataArray[dataIndex] ?? null
-      const isOnStage: boolean = message.id === data?.message.id
+      const trackingIndex = findTrackingIndex(targetUserId, stageChannel)
+      const tracking: Tracking = trackingArray[trackingIndex] ?? null
+      const isOnStage: boolean = message.id === tracking?.message.id
 
       switch (buttonInteraction.customId) {
         case 'summary-button':
@@ -87,7 +87,7 @@ export default (client: Client): void => {
               if (label === 'Add Talk') {
                 if (hasTalk) {
                   await buttonInteraction.reply({ content: 'User already has Talk.', ephemeral: true }).then(() => {
-                    if (isOnStage) data.buttonBuilders[1].setLabel('Remove Talk')
+                    if (isOnStage) tracking.buttonBuilders[1].setLabel('Remove Talk')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -103,9 +103,9 @@ export default (client: Client): void => {
                 } else {
                   await targetMember.roles.add(talkRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Added Talk')
-                    if (isOnStage) data.buttonBuilders[1].setLabel('Remove Talk')
+                    if (isOnStage) tracking.buttonBuilders[1].setLabel('Remove Talk')
                     message.edit({
-                      embeds: [getColoredEmbed(embed, isOnStage, data)],
+                      embeds: [getColoredEmbed(embed, isOnStage, tracking)],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
@@ -123,9 +123,9 @@ export default (client: Client): void => {
                 if (hasTalk) {
                   await targetMember.roles.remove(talkRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Removed Talk')
-                    if (isOnStage) data.buttonBuilders[1].setLabel('Add Talk')
+                    if (isOnStage) tracking.buttonBuilders[1].setLabel('Add Talk')
                     message.edit({
-                      embeds: [getColoredEmbed(embed, isOnStage, data)],
+                      embeds: [getColoredEmbed(embed, isOnStage, tracking)],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
@@ -140,7 +140,7 @@ export default (client: Client): void => {
                   buttonInteraction.deferUpdate()
                 } else {
                   await buttonInteraction.reply({ content: "User doesn't have Talk.", ephemeral: true }).then(() => {
-                    if (isOnStage) data.buttonBuilders[1].setLabel('Add Talk')
+                    if (isOnStage) tracking.buttonBuilders[1].setLabel('Add Talk')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -166,7 +166,7 @@ export default (client: Client): void => {
               if (label === 'Add Void') {
                 if (hasVoid) {
                   await buttonInteraction.reply({ content: 'User already has Void.', ephemeral: true }).then(() => {
-                    if (isOnStage) data.buttonBuilders[2].setLabel('Remove Void')
+                    if (isOnStage) tracking.buttonBuilders[2].setLabel('Remove Void')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -183,11 +183,11 @@ export default (client: Client): void => {
                   await targetMember.roles.add(voidRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Added Void')
                     if (isOnStage) {
-                      data.buttonBuilders[1].setLabel('Add Talk')
-                      data.buttonBuilders[2].setLabel('Remove Void')
+                      tracking.buttonBuilders[1].setLabel('Add Talk')
+                      tracking.buttonBuilders[2].setLabel('Remove Void')
                     }
                     message.edit({
-                      embeds: [getColoredEmbed(embed, isOnStage, data)],
+                      embeds: [getColoredEmbed(embed, isOnStage, tracking)],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
@@ -207,9 +207,9 @@ export default (client: Client): void => {
                 if (hasVoid) {
                   await targetMember.roles.remove(voidRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Removed Void')
-                    if (isOnStage) data.buttonBuilders[2].setLabel('Add Void')
+                    if (isOnStage) tracking.buttonBuilders[2].setLabel('Add Void')
                     message.edit({
-                      embeds: [getColoredEmbed(embed, isOnStage, data)],
+                      embeds: [getColoredEmbed(embed, isOnStage, tracking)],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
                           new ButtonBuilder(components[0].data),
@@ -224,7 +224,7 @@ export default (client: Client): void => {
                   buttonInteraction.deferUpdate()
                 } else {
                   await buttonInteraction.reply({ content: "User doesn't have Void.", ephemeral: true }).then(() => {
-                    if (isOnStage) data.buttonBuilders[2].setLabel('Add Void')
+                    if (isOnStage) tracking.buttonBuilders[2].setLabel('Add Void')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -249,7 +249,7 @@ export default (client: Client): void => {
             if (label === 'Ban') {
               if (isBanned) {
                 await buttonInteraction.reply({ content: 'User is already banned.', ephemeral: true }).then(() => {
-                  if (isOnStage) data.buttonBuilders[3].setLabel('Unban')
+                  if (isOnStage) tracking.buttonBuilders[3].setLabel('Unban')
                   message.edit({
                     components: [
                       new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -276,7 +276,7 @@ export default (client: Client): void => {
               if (isBanned) {
                 guild.members.unban(targetUserId).then(() => {
                   appendLog(message, embed, user, targetUserId, 'Unbanned')
-                  if (isOnStage) data.buttonBuilders[3].setLabel('Ban')
+                  if (isOnStage) tracking.buttonBuilders[3].setLabel('Ban')
                   message.edit({
                     embeds: [embed],
                     components: [
@@ -293,7 +293,7 @@ export default (client: Client): void => {
                 })
               } else {
                 await buttonInteraction.reply({ content: 'User is already unbanned.', ephemeral: true }).then(() => {
-                  if (isOnStage) data.buttonBuilders[3].setLabel('Ban')
+                  if (isOnStage) tracking.buttonBuilders[3].setLabel('Ban')
                   message.edit({
                     components: [
                       new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -312,9 +312,9 @@ export default (client: Client): void => {
           break
         default:
           if (buttonInteraction.component.emoji?.id === WHITE_MARK_EMOJI_ID) {
-            if (isOnStage) data.buttonBuilders[4].setDisabled()
+            if (isOnStage) tracking.buttonBuilders[4].setDisabled()
             message.edit({
-              embeds: [getColoredEmbed(embed, isOnStage, data)],
+              embeds: [getColoredEmbed(embed, isOnStage, tracking)],
               components: [
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
                   new ButtonBuilder(components[0].data),
@@ -337,9 +337,9 @@ export default (client: Client): void => {
       const targetUserId: string = embed.fields[1].value
       const components: MessageActionRowComponent[] = message.components[0].components
       const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
-      const dataIndex = findDataIndex(targetUserId, stageChannel)
-      const data: Data = dataArray[dataIndex] ?? null
-      const isOnStage: boolean = message.id === data?.message.id
+      const trackingIndex = findTrackingIndex(targetUserId, stageChannel)
+      const tracking: Tracking = trackingArray[trackingIndex] ?? null
+      const isOnStage: boolean = message.id === tracking?.message.id
 
       switch (modalSubmitInteraction.customId) {
         case 'summary-modal':
@@ -358,11 +358,11 @@ export default (client: Client): void => {
           guild.members.ban(targetUserId).then(() => {
             appendLog(message, embed, user, targetUserId, 'Banned')
             if (isOnStage) {
-              data.buttonBuilders[3].setLabel('Unban')
-              data.buttonBuilders[4].setDisabled()
+              tracking.buttonBuilders[3].setLabel('Unban')
+              tracking.buttonBuilders[4].setDisabled()
             }
             message.edit({
-              embeds: [getColoredEmbed(embed, isOnStage, data, true)],
+              embeds: [getColoredEmbed(embed, isOnStage, tracking, true)],
               components: [
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
                   new ButtonBuilder(components[0].data),
@@ -401,9 +401,9 @@ export async function appendLog(
   const oldLogField: string = fields[logIndex]?.value ?? null
   const log: string = `${logBody} by ${user.username} [${new Date().toLocaleString()}]`
   const stageChannel: StageChannel = getStageChannel(message.guild!.channels.cache, embed)
-  const dataIndex = findDataIndex(targetUserId, stageChannel)
-  const data: Data = dataArray[dataIndex] ?? null
-  const isUserOnStage: boolean = message.id === data?.message.id
+  const trackingIndex = findTrackingIndex(targetUserId, stageChannel)
+  const tracking: Tracking = trackingArray[trackingIndex] ?? null
+  const isUserOnStage: boolean = message.id === tracking?.message.id
 
   if (oldLogField) {
     const newLogField = {
@@ -413,7 +413,7 @@ export async function appendLog(
     }
     if (newLogField.value.length <= 1024) {
       fields[logIndex] = newLogField
-      if (isUserOnStage) data.embedBuilder.spliceFields(logIndex, 1, newLogField)
+      if (isUserOnStage) tracking.embedBuilder.spliceFields(logIndex, 1, newLogField)
     }
   } else {
     const newLogField = {
@@ -423,7 +423,7 @@ export async function appendLog(
     }
     if (newLogField.value.length <= 1024) {
       fields.push(newLogField)
-      if (isUserOnStage) data.embedBuilder.addFields(newLogField)
+      if (isUserOnStage) tracking.embedBuilder.addFields(newLogField)
     }
   }
 }
@@ -470,9 +470,9 @@ export async function fixMessageIfBugged(message: Message) {
   const embed: Embed = message.embeds[0]
   const targetUserId: string = embed.fields[1].value
   const stageChannel: StageChannel = getStageChannel(message.guild!.channels.cache, embed)
-  const dataIndex = findDataIndex(targetUserId, stageChannel)
-  const data: Data = dataArray[dataIndex] ?? null
-  const isOnStage: boolean = message.id === data?.message.id
+  const trackingIndex = findTrackingIndex(targetUserId, stageChannel)
+  const tracking: Tracking = trackingArray[trackingIndex] ?? null
+  const isOnStage: boolean = message.id === tracking?.message.id
   if (!isOnStage && (embed.color === Colors.Green || embed.color === Colors.Yellow)) {
     const embedBuilder: EmbedBuilder = new EmbedBuilder(embed.data)
       .setColor(Colors.Red)
@@ -495,9 +495,9 @@ export async function manageSummary(
   const fields: APIEmbedField[] = embed.fields
   const summaryIndex: number = fields.findIndex(field => field.name.startsWith('Summary by '))
   const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
-  const dataIndex = findDataIndex(targetUserId, stageChannel)
-  const data: Data = dataArray[dataIndex] ?? null
-  const isOnStage: boolean = message.id === data?.message.id
+  const trackingIndex = findTrackingIndex(targetUserId, stageChannel)
+  const tracking: Tracking = trackingArray[trackingIndex] ?? null
+  const isOnStage: boolean = message.id === tracking?.message.id
   const summaryField = {
     name: `Summary by ${user.username}`,
     value: summary,
@@ -512,16 +512,16 @@ export async function manageSummary(
       fields[logIndex] = summaryField
       logIndex++
       if (isOnStage) {
-        data.embedBuilder.addFields(fields[logIndex])
-        data.embedBuilder.spliceFields(logIndex - 1, 1, summaryField)
+        tracking.embedBuilder.addFields(fields[logIndex])
+        tracking.embedBuilder.spliceFields(logIndex - 1, 1, summaryField)
       }
     } else {
       fields.push(summaryField)
-      if (isOnStage) data.embedBuilder.addFields(summaryField)
+      if (isOnStage) tracking.embedBuilder.addFields(summaryField)
     }
 
     appendLog(message, embed, user, targetUserId, 'Added Summary')
-    if (isOnStage) data.buttonBuilders[0].setLabel('Edit Summary')
+    if (isOnStage) tracking.buttonBuilders[0].setLabel('Edit Summary')
     await message.edit({
       embeds: [embed],
       components: [
@@ -536,7 +536,7 @@ export async function manageSummary(
     })
   } else {
     fields[summaryIndex] = summaryField
-    if (isOnStage) data.embedBuilder.spliceFields(summaryIndex, 1, summaryField)
+    if (isOnStage) tracking.embedBuilder.spliceFields(summaryIndex, 1, summaryField)
     appendLog(message, embed, user, targetUserId, 'Edited Summary')
     await message.edit({
       embeds: [embed],
@@ -544,9 +544,9 @@ export async function manageSummary(
   }
 }
 
-function getColoredEmbed(embed: Embed, isOnStage: boolean, data: Data, isBan: boolean = false): EmbedBuilder {
+function getColoredEmbed(embed: Embed, isOnStage: boolean, tracking: Tracking, isBan: boolean = false): EmbedBuilder {
   if (embed.color === Colors.Red || isBan) {
-    if (isOnStage) data.embedBuilder.setColor(Colors.Blue)
+    if (isOnStage) tracking.embedBuilder.setColor(Colors.Blue)
     return new EmbedBuilder(embed.data).setColor(Colors.Blue)
   } else {
     return new EmbedBuilder(embed.data)

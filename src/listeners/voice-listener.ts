@@ -14,10 +14,10 @@ import {
   TextChannel,
   User,
 } from 'discord.js'
-import Data from '../interfaces/data'
+import Tracking from '../interfaces/tracking'
 import { SERVER_ID, STAGE_TRACKING_CHANNEL_ID, TALK_ROLE_ID, VOID_ROLE_ID, WHITE_MARK_EMOJI_ID } from '../veganizer'
 
-export const dataArray: Data[] = []
+export const trackingArray: Tracking[] = []
 
 export default (client: Client): void => {
   client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
@@ -80,7 +80,7 @@ export default (client: Client): void => {
         }
       )
 
-      const newData: Data = {
+      const newTracking: Tracking = {
         member,
         channel,
         message,
@@ -90,8 +90,8 @@ export default (client: Client): void => {
         timer: null,
       }
 
-      dataArray.push(newData)
-      startTrackingMessageTimer(newData)
+      trackingArray.push(newTracking)
+      startTrackingMessageTimer(newTracking)
     } else if (oldState.channel?.type === ChannelType.GuildStageVoice) {
       if (
         // leave Stage
@@ -101,63 +101,63 @@ export default (client: Client): void => {
         (null !== oldState.channelId && null === newState.channelId)
       ) {
         const member: GuildMember = oldState.member!
-        const dataIndex: number = findDataIndex(member.user.id, oldState.channel)
-        if (dataIndex === -1) return
-        const data: Data = dataArray[dataIndex]
+        const trackingIndex: number = findTrackingIndex(member.user.id, oldState.channel)
+        if (trackingIndex === -1) return
+        const tracking: Tracking = trackingArray[trackingIndex]
 
-        onLeaveStage(data)
+        onLeaveStage(tracking)
       }
     }
   })
 }
 
-export function onLeaveStage(data: Data): void {
-  data.embedBuilder.setColor(Colors.Red)
-  updateTrackingMessage(data, true)
-  clear(data)
+export function onLeaveStage(tracking: Tracking): void {
+  tracking.embedBuilder.setColor(Colors.Red)
+  updateTrackingMessage(tracking, true)
+  clear(tracking)
 }
 
-export function findDataIndex(userId: string | undefined, channel: StageChannel): number {
-  return dataArray.findIndex(data => data.member.user.id === userId && data.channel.id === channel.id)
+export function findTrackingIndex(userId: string | undefined, channel: StageChannel): number {
+  return trackingArray.findIndex(tracking => tracking.member.user.id === userId && tracking.channel.id === channel.id)
 }
 
-function startTrackingMessageTimer(newData: Data): void {
-  const dataIndex: number = findDataIndex(newData.member.user.id, newData.channel)
-  if (dataIndex === -1) return
-  const data: Data = dataArray[dataIndex]
+function startTrackingMessageTimer(newTracking: Tracking): void {
+  const trackingIndex: number = findTrackingIndex(newTracking.member.user.id, newTracking.channel)
+  if (trackingIndex === -1) return
+  const tracking: Tracking = trackingArray[trackingIndex]
 
-  data.timer = setInterval(() => {
-    updateTrackingMessage(data, false)
+  tracking.timer = setInterval(() => {
+    updateTrackingMessage(tracking, false)
   }, 5 * 1000)
 }
 
-function updateTrackingMessage(data: Data, isLeaving: boolean): void {
-  const secs = Math.floor((Date.now() - data.startTime) / 1000)
+function updateTrackingMessage(tracking: Tracking, isLeaving: boolean): void {
+  const secs = Math.floor((Date.now() - tracking.startTime) / 1000)
   const min = Math.floor((secs % 3600) / 60)
   const hours = Math.floor(secs / 3600)
-  data.embedBuilder.setDescription(
+  tracking.embedBuilder.setDescription(
     `Time on Stage: ${hours.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:${(secs % 60)
       .toString()
       .padStart(2, '0')}`
   )
-  if (hours >= 1 && !isLeaving) data.embedBuilder.setColor(Colors.Yellow)
-  updateTrackingMessageEmbed(data, isLeaving)
+  if (hours >= 1 && !isLeaving) tracking.embedBuilder.setColor(Colors.Yellow)
+  updateTrackingMessageEmbed(tracking, isLeaving)
 }
 
-function updateTrackingMessageEmbed(data: Data, isLeaving: boolean): void {
-  data.buttonBuilders[4].setDisabled(!isLeaving)
-  data.message
+function updateTrackingMessageEmbed(tracking: Tracking, isLeaving: boolean): void {
+  tracking.buttonBuilders[4].setDisabled(!isLeaving)
+  tracking.message
     .edit({
-      embeds: [data.embedBuilder],
-      components: [new ActionRowBuilder<ButtonBuilder>().addComponents(data.buttonBuilders)],
+      embeds: [tracking.embedBuilder],
+      components: [new ActionRowBuilder<ButtonBuilder>().addComponents(tracking.buttonBuilders)],
     })
-    .then(message => (data.message = message))
-    .catch(() => clear(data))
+    .then(message => (tracking.message = message))
+    .catch(() => clear(tracking))
 }
 
-function clear(data: Data): void {
-  data.timer && clearTimeout(data.timer)
-  const dataIndex: number = findDataIndex(data.member.user.id, data.channel)
-  if (dataIndex === -1) return
-  dataArray.splice(dataIndex, 1)
+function clear(tracking: Tracking): void {
+  tracking.timer && clearTimeout(tracking.timer)
+  const trackingIndex: number = findTrackingIndex(tracking.member.user.id, tracking.channel)
+  if (trackingIndex === -1) return
+  trackingArray.splice(trackingIndex, 1)
 }
