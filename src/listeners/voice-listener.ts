@@ -15,6 +15,7 @@ import {
   User,
 } from 'discord.js'
 import Tracking from '../interfaces/tracking'
+import { MariaDB } from '../utils/mariadb'
 import { SERVER_ID, STAGE_TRACKING_CHANNEL_ID, TALK_ROLE_ID, VOID_ROLE_ID, WHITE_MARK_EMOJI_ID } from '../veganizer'
 
 export const trackingArray: Tracking[] = []
@@ -32,10 +33,10 @@ export default (client: Client): void => {
       const member: GuildMember = newState.member!
       const user: User = member.user
       const channel: StageChannel = newState.channel
-      const avatar = user.displayAvatarURL({ forceStatic: true })
+      const avatar: string = user.displayAvatarURL({ forceStatic: true })
       const embedBuilder: EmbedBuilder = new EmbedBuilder()
         .setTitle(`${member.displayName} joined ${member.voice.channel!.name}`)
-        .setDescription('Time on Stage: 00:00:00')
+        .setDescription(`Number past Stages: ${await selectTalkCountByUser(user.id)}\nTime on Stage: 00:00:00`)
         .setTimestamp(new Date())
         .setColor(Colors.Green)
         .setThumbnail(avatar === user.defaultAvatarURL ? avatar : avatar.replace('.png', '.webp?size=256'))
@@ -92,6 +93,11 @@ export default (client: Client): void => {
 
       trackingArray.push(newTracking)
       startTrackingMessageTimer(newTracking)
+
+      const mariaDB = new MariaDB()
+      await mariaDB.connect()
+      await mariaDB.insertTalk(message, member)
+      await mariaDB.disconnect()
     } else if (oldState.channel?.type === ChannelType.GuildStageVoice) {
       if (
         // leave Stage
@@ -132,19 +138,20 @@ function startTrackingMessageTimer(newTracking: Tracking): void {
 }
 
 function updateTrackingMessage(tracking: Tracking, isLeaving: boolean): void {
+  const descriptionWithoutTime = tracking.embedBuilder.data.description!.replace(/\d{2}:\d{2}:\d{2}/, '')
   const secs = Math.floor((Date.now() - tracking.startTime) / 1000)
   const min = Math.floor((secs % 3600) / 60)
   const hours = Math.floor(secs / 3600)
   tracking.embedBuilder.setDescription(
-    `Time on Stage: ${hours.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:${(secs % 60)
+    `${descriptionWithoutTime}${hours.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:${(secs % 60)
       .toString()
       .padStart(2, '0')}`
   )
   if (hours >= 1 && !isLeaving) tracking.embedBuilder.setColor(Colors.Yellow)
-  updateTrackingMessageEmbed(tracking, isLeaving)
+  updateTrackingMessageEmbed(tracking, isLeaving, secs)
 }
 
-function updateTrackingMessageEmbed(tracking: Tracking, isLeaving: boolean): void {
+async function updateTrackingMessageEmbed(tracking: Tracking, isLeaving: boolean, timeOnStage: number): Promise<void> {
   tracking.buttonBuilders[4].setDisabled(!isLeaving)
   tracking.message
     .edit({
@@ -153,6 +160,13 @@ function updateTrackingMessageEmbed(tracking: Tracking, isLeaving: boolean): voi
     })
     .then(message => (tracking.message = message))
     .catch(() => clear(tracking))
+
+  if (isLeaving) {
+    const mariaDB = new MariaDB()
+    await mariaDB.connect()
+    await mariaDB.updateTalkOnLeave(tracking, timeOnStage)
+    await mariaDB.disconnect()
+  }
 }
 
 function clear(tracking: Tracking): void {
@@ -160,4 +174,12 @@ function clear(tracking: Tracking): void {
   const trackingIndex: number = findTrackingIndex(tracking.member.user.id, tracking.channel)
   if (trackingIndex === -1) return
   trackingArray.splice(trackingIndex, 1)
+}
+
+async function selectTalkCountByUser(targetUserId: string): Promise<number> {
+  const mariaDB = new MariaDB()
+  await mariaDB.connect()
+  const count = (await mariaDB.selectTalkCountByUser(targetUserId))[0]['count(message_id)']
+  await mariaDB.disconnect()
+  return count
 }

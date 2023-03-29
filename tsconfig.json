@@ -26,7 +26,8 @@
         "src/listeners/ban-listener.ts",
         "src/listeners/chat-listener.ts",
         "src/listeners/interaction-listener.ts",
-        "src/listeners/voice-listener.ts"
+        "src/listeners/voice-listener.ts",
+        "src/utils/mariadb.ts"
     ],
     "include": [
         "./**/*.ts"
