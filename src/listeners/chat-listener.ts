@@ -2,7 +2,7 @@ import { ChannelType, Client, Embed, EmbedBuilder, Events, Message, TextChannel 
 import Tracking from 'src/interfaces/tracking'
 import { MOVE_MEMBERS_PERMISSION, SERVER_ID, STAGE_TRACKING_CHANNEL_ID } from '../veganizer'
 import { appendLog, fixMessageIfBugged, getStageChannel, manageSummary } from './interaction-listener'
-import { trackingArray, findTrackingIndex } from './voice-listener'
+import { findTrackingIndex, trackingArray } from './voice-listener'
 
 export default (client: Client): void => {
   client.on(Events.MessageCreate, async message => {
@@ -48,8 +48,6 @@ export default (client: Client): void => {
 
   function reply(message: Message, value: string) {
     const sentMessage = (message.channel as TextChannel).send(`${message.author.toString()} ${value}`)
-    setTimeout(() => {
-      sentMessage.then(msg => msg.delete().catch(() => {}))
-    }, 15000)
+    setTimeout(() => sentMessage.then(msg => msg.delete().catch(() => {})), 15000)
   }
 }
