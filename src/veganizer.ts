@@ -3,9 +3,11 @@ import dotenv from 'dotenv'
 import ChatListener from './listeners/chat-listener'
 import InteractionListener from './listeners/interaction-listener'
 import VoiceListener from './listeners/voice-listener'
+import { MariaDB } from './utils/mariadb'
 
 dotenv.config({ override: true })
 
+export const mariaDB = new MariaDB()
 export const SERVER_ID: string = process.env.SERVER_ID!
 export const NEW_ROLE_ID: string = process.env.NEW_ROLE_ID!
 export const TALK_ROLE_ID: string = process.env.TALK_ROLE_ID!
@@ -33,4 +35,5 @@ ChatListener(client)
 client.login(process.env.TOKEN).then(() => {
   console.log('Bot started')
   client.user!.setActivity('auf die Stage.', { type: ActivityType.Watching })
+  mariaDB.connect()
 })

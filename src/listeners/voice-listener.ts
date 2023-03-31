@@ -1,5 +1,6 @@
 import {
   ActionRowBuilder,
+  APIEmbedField,
   ButtonBuilder,
   ButtonStyle,
   ChannelType,
@@ -15,8 +16,14 @@ import {
   User,
 } from 'discord.js'
 import Tracking from '../interfaces/tracking'
-import { MariaDB } from '../utils/mariadb'
-import { SERVER_ID, STAGE_TRACKING_CHANNEL_ID, TALK_ROLE_ID, VOID_ROLE_ID, WHITE_MARK_EMOJI_ID } from '../veganizer'
+import {
+  mariaDB,
+  SERVER_ID,
+  STAGE_TRACKING_CHANNEL_ID,
+  TALK_ROLE_ID,
+  VOID_ROLE_ID,
+  WHITE_MARK_EMOJI_ID,
+} from '../veganizer'
 
 export const trackingArray: Tracking[] = []
 
@@ -36,7 +43,11 @@ export default (client: Client): void => {
       const avatar: string = user.displayAvatarURL({ forceStatic: true })
       const embedBuilder: EmbedBuilder = new EmbedBuilder()
         .setTitle(`${member.displayName} joined ${member.voice.channel!.name}`)
-        .setDescription(`Number past Stages: ${await selectTalkCountByUser(user.id)}\nTime on Stage: 00:00:00`)
+        .setDescription(
+          `Number past Stages: ${
+            (await mariaDB.selectTalkCountByUser(user.id))[0]['count(message_id)']
+          }\nTime on Stage: 00:00:00`
+        )
         .setTimestamp(new Date())
         .setColor(Colors.Green)
         .setThumbnail(avatar === user.defaultAvatarURL ? avatar : avatar.replace('.png', '.webp?size=256'))
@@ -93,11 +104,7 @@ export default (client: Client): void => {
 
       trackingArray.push(newTracking)
       startTrackingMessageTimer(newTracking)
-
-      const mariaDB = new MariaDB()
-      await mariaDB.connect()
       await mariaDB.insertTalk(message, member)
-      await mariaDB.disconnect()
     } else if (oldState.channel?.type === ChannelType.GuildStageVoice) {
       if (
         // leave Stage
@@ -118,7 +125,11 @@ export default (client: Client): void => {
 }
 
 export function onLeaveStage(tracking: Tracking): void {
-  tracking.embedBuilder.setColor(Colors.Red)
+  const fields: APIEmbedField[] = tracking.embedBuilder.data.fields!
+  if (fields.length > 2 && fields[2].name.startsWith('Summary by ')) {
+    tracking.embedBuilder.setColor(Colors.Red)
+    tracking.buttonBuilders[4].setDisabled(false)
+  } else tracking.embedBuilder.setColor(Colors.Blue)
   updateTrackingMessage(tracking, true)
   clear(tracking)
 }
@@ -132,9 +143,7 @@ function startTrackingMessageTimer(newTracking: Tracking): void {
   if (trackingIndex === -1) return
   const tracking: Tracking = trackingArray[trackingIndex]
 
-  tracking.timer = setInterval(() => {
-    updateTrackingMessage(tracking, false)
-  }, 5 * 1000)
+  tracking.timer = setInterval(() => updateTrackingMessage(tracking, false), 5 * 1000)
 }
 
 function updateTrackingMessage(tracking: Tracking, isLeaving: boolean): void {
@@ -152,7 +161,6 @@ function updateTrackingMessage(tracking: Tracking, isLeaving: boolean): void {
 }
 
 async function updateTrackingMessageEmbed(tracking: Tracking, isLeaving: boolean, timeOnStage: number): Promise<void> {
-  tracking.buttonBuilders[4].setDisabled(!isLeaving)
   tracking.message
     .edit({
       embeds: [tracking.embedBuilder],
@@ -161,12 +169,7 @@ async function updateTrackingMessageEmbed(tracking: Tracking, isLeaving: boolean
     .then(message => (tracking.message = message))
     .catch(() => clear(tracking))
 
-  if (isLeaving) {
-    const mariaDB = new MariaDB()
-    await mariaDB.connect()
-    await mariaDB.updateTalkOnLeave(tracking, timeOnStage)
-    await mariaDB.disconnect()
-  }
+  if (isLeaving) await mariaDB.updateTalkOnLeave(tracking, timeOnStage)
 }
 
 function clear(tracking: Tracking): void {
@@ -174,12 +177,4 @@ function clear(tracking: Tracking): void {
   const trackingIndex: number = findTrackingIndex(tracking.member.user.id, tracking.channel)
   if (trackingIndex === -1) return
   trackingArray.splice(trackingIndex, 1)
-}
-
-async function selectTalkCountByUser(targetUserId: string): Promise<number> {
-  const mariaDB = new MariaDB()
-  await mariaDB.connect()
-  const count = (await mariaDB.selectTalkCountByUser(targetUserId))[0]['count(message_id)']
-  await mariaDB.disconnect()
-  return count
 }

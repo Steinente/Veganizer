@@ -26,10 +26,10 @@ import {
   User,
 } from 'discord.js'
 import Tracking from 'src/interfaces/tracking'
-import { MariaDB } from '../utils/mariadb'
 import {
   BAN_MEMBERS_PERMISSION,
   MANAGE_ROLES_PERMISSION,
+  mariaDB,
   MOVE_MEMBERS_PERMISSION,
   NEW_ROLE_ID,
   SERVER_ID,
@@ -57,12 +57,12 @@ export default (client: Client): void => {
       const fields: APIEmbedField[] = embed.fields
       const targetUserId: string = fields[1].value
       const targetUser = client.users.cache.get(targetUserId)
-      const targetUserName = targetUser?.username ?? ''
+      const targetUserName: string = targetUser?.username ?? ''
       const targetMember = await guild.members.fetch(targetUserId).catch(() => {})
       const components: MessageActionRowComponent[] = message.components[0].components
-      const label = buttonInteraction.component.label
+      const label: string = buttonInteraction.component.label!
       const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
-      const trackingIndex = findTrackingIndex(targetUserId, stageChannel)
+      const trackingIndex: number = findTrackingIndex(targetUserId, stageChannel)
       const tracking: Tracking = trackingArray[trackingIndex] ?? null
       const isOnStage: boolean = message.id === tracking?.message.id
 
@@ -118,7 +118,7 @@ export default (client: Client): void => {
                         ),
                       ],
                     })
-                    updateTalkOnRoleChange(message, targetMember, member, 'talk')
+                    mariaDB.updateTalkOnRoleChange(message, targetMember, member, 'talk')
                     buttonInteraction.deferUpdate()
                   })
                 }
@@ -140,7 +140,7 @@ export default (client: Client): void => {
                         ),
                       ],
                     })
-                    updateTalkOnRoleChange(message, targetMember, member, 'talk')
+                    mariaDB.updateTalkOnRoleChange(message, targetMember, member, 'talk')
                     buttonInteraction.deferUpdate()
                   })
                 } else {
@@ -206,7 +206,7 @@ export default (client: Client): void => {
                     })
                     targetMember.roles.remove(newRole).then(() => {
                       targetMember.roles.remove(talkRole).then(() => {
-                        updateTalkOnRoleChange(message, targetMember, member, 'void')
+                        mariaDB.updateTalkOnRoleChange(message, targetMember, member, 'void')
                       })
                     })
                     buttonInteraction.deferUpdate()
@@ -230,7 +230,7 @@ export default (client: Client): void => {
                         ),
                       ],
                     })
-                    updateTalkOnRoleChange(message, targetMember, member, 'void')
+                    mariaDB.updateTalkOnRoleChange(message, targetMember, member, 'void')
                     buttonInteraction.deferUpdate()
                   })
                 } else {
@@ -300,7 +300,7 @@ export default (client: Client): void => {
                       ),
                     ],
                   })
-                  updateTalkOnBan(message, targetUserId, member)
+                  mariaDB.updateTalkOnBan(message, targetUserId, member)
                   buttonInteraction.deferUpdate()
                 })
               } else {
@@ -324,20 +324,26 @@ export default (client: Client): void => {
           break
         default:
           if (buttonInteraction.component.emoji?.id === WHITE_MARK_EMOJI_ID) {
-            if (isOnStage) tracking.buttonBuilders[4].setDisabled()
-            message.edit({
-              embeds: [getColoredEmbed(embed, isOnStage, tracking)],
-              components: [
-                new ActionRowBuilder<ButtonBuilder>().addComponents(
-                  new ButtonBuilder(components[0].data),
-                  new ButtonBuilder(components[1].data),
-                  new ButtonBuilder(components[2].data),
-                  new ButtonBuilder(components[3].data),
-                  new ButtonBuilder(components[4].data).setDisabled()
-                ),
-              ],
-            })
-            buttonInteraction.deferUpdate()
+            if (
+              permissions.has(MANAGE_ROLES_PERMISSION) &&
+              member.roles.highest.comparePositionTo(voidRole) &&
+              member.roles.highest.comparePositionTo(talkRole)
+            ) {
+              if (isOnStage) tracking.buttonBuilders[4].setDisabled()
+              message.edit({
+                embeds: [getColoredEmbed(embed, isOnStage, tracking)],
+                components: [
+                  new ActionRowBuilder<ButtonBuilder>().addComponents(
+                    new ButtonBuilder(components[0].data),
+                    new ButtonBuilder(components[1].data),
+                    new ButtonBuilder(components[2].data),
+                    new ButtonBuilder(components[3].data),
+                    new ButtonBuilder(components[4].data).setDisabled()
+                  ),
+                ],
+              })
+              buttonInteraction.deferUpdate()
+            } else replyNoPermissions(buttonInteraction)
           }
           break
       }
@@ -385,7 +391,7 @@ export default (client: Client): void => {
                 ),
               ],
             })
-            updateTalkOnBan(message, targetUserId, member)
+            mariaDB.updateTalkOnBan(message, targetUserId, member)
             modalSubmitInteraction.deferUpdate()
           })
           break
@@ -537,31 +543,36 @@ export async function manageSummary(
     if (isOnStage) tracking.buttonBuilders[0].setLabel('Edit Summary')
     await message
       .edit({
-        embeds: [embed],
+        embeds: [embed.color === Colors.Blue ? new EmbedBuilder(embed.data).setColor(Colors.Red) : embed],
         components: [
           new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder(components[0].data).setLabel('Edit Summary'),
             new ButtonBuilder(components[1].data),
             new ButtonBuilder(components[2].data),
             new ButtonBuilder(components[3].data),
-            new ButtonBuilder(components[4].data)
+            new ButtonBuilder(components[4].data).setDisabled(embed.color === Colors.Green)
           ),
         ],
       })
-      .then(() => {
-        updateTalkOnSummary(message, targetUserId, user)
-      })
+      .then(() => mariaDB.updateTalkOnSummary(message, targetUserId, user))
   } else {
     fields[summaryIndex] = summaryField
     if (isOnStage) tracking.embedBuilder.spliceFields(summaryIndex, 1, summaryField)
     appendLog(message, embed, user, targetUserId, 'Edited Summary')
     await message
       .edit({
-        embeds: [embed],
+        embeds: [embed.color === Colors.Blue ? new EmbedBuilder(embed.data).setColor(Colors.Red) : embed],
+        components: [
+          new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder(components[0].data),
+            new ButtonBuilder(components[1].data),
+            new ButtonBuilder(components[2].data),
+            new ButtonBuilder(components[3].data),
+            new ButtonBuilder(components[4].data).setDisabled(embed.color === Colors.Green)
+          ),
+        ],
       })
-      .then(() => {
-        updateTalkOnSummary(message, targetUserId, user)
-      })
+      .then(() => mariaDB.updateTalkOnSummary(message, targetUserId, user))
   }
 }
 
@@ -572,30 +583,4 @@ function getColoredEmbed(embed: Embed, isOnStage: boolean, tracking: Tracking, i
   } else {
     return new EmbedBuilder(embed.data)
   }
-}
-
-async function updateTalkOnSummary(message: Message, targetUserId: string, interactionUser: User): Promise<void> {
-  const mariaDB = new MariaDB()
-  await mariaDB.connect()
-  await mariaDB.updateTalkOnSummary(message, targetUserId, interactionUser)
-  await mariaDB.disconnect()
-}
-
-async function updateTalkOnRoleChange(
-  message: Message,
-  targetMember: GuildMember,
-  interactionMember: GuildMember,
-  buttonName: string
-): Promise<void> {
-  const mariaDB = new MariaDB()
-  await mariaDB.connect()
-  await mariaDB.updateTalkOnRoleChange(message, targetMember, interactionMember, buttonName)
-  await mariaDB.disconnect()
-}
-
-async function updateTalkOnBan(message: Message, targetUserId: string, interactionMember: GuildMember): Promise<void> {
-  const mariaDB = new MariaDB()
-  await mariaDB.connect()
-  await mariaDB.updateTalkOnBan(message, targetUserId, interactionMember)
-  await mariaDB.disconnect()
 }

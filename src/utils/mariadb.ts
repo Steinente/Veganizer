@@ -4,19 +4,18 @@ import moment from 'moment'
 import Tracking from 'src/interfaces/tracking'
 
 export class MariaDB {
-  private dbConn: mariadb.PoolConnection | null = null
+  private dbConn: mariadb.Connection | null = null
 
   public async connect(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       mariadb
-        .createPool({
+        .createConnection({
           host: process.env.DB_HOST!,
           port: +process.env.DB_PORT!,
           user: process.env.DB_USERNAME!,
           password: process.env.DB_PASSWORD!,
           database: process.env.DB_DATABASE!,
         })
-        .getConnection()
         .then(conn => {
           this.dbConn = conn
           resolve()
@@ -118,7 +117,7 @@ export class MariaDB {
   public async selectTalkCountByUser(targetUserId: string): Promise<any[]> {
     return this.query(`SELECT count(message_id)
     FROM talks
-    WHERE user_id=${targetUserId}`)
+    WHERE user_id=${targetUserId} AND user_time_on_stage >= 60`)
   }
 
   private getRolesAsString(roles: Collection<string, Role>): string {
