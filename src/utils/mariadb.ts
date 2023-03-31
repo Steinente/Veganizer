@@ -78,8 +78,7 @@ export class MariaDB {
     const isBanned = banList?.some(ban => ban.user.id === tracking.member.user.id) ?? false
     return this.query(`UPDATE talks
     SET user_time_on_stage=${timeOnStage}
-    WHERE message_id=${tracking.message.id} AND user_id=${tracking.member.user.id}
-    `)
+    WHERE message_id=${tracking.message.id} AND user_id=${tracking.member.user.id}`)
   }
 
   public async updateTalkOnSummary(message: Message, targetUserId: string, interactionUser: User): Promise<any[]> {
@@ -87,8 +86,7 @@ export class MariaDB {
     const summaryIndex: number = fields.findIndex(field => field.name.startsWith('Summary by '))
     return this.query(`UPDATE talks
     SET summary='${fields[summaryIndex].value}', last_summary_mod_id=${interactionUser.id}
-    WHERE message_id=${message.id} AND user_id=${targetUserId}
-    `)
+    WHERE message_id=${message.id} AND user_id=${targetUserId}`)
   }
 
   public async updateTalkOnRoleChange(
@@ -101,8 +99,7 @@ export class MariaDB {
     SET user_roles='${this.getRolesAsString(targetMember.roles.cache)}', last_${buttonName}_mod_id=${
       interactionMember.user.id
     }
-    WHERE message_id=${message.id} AND user_id=${targetMember.user.id}
-    `)
+    WHERE message_id=${message.id} AND user_id=${targetMember.user.id}`)
   }
 
   public async updateTalkOnBan(message: Message, targetUserId: string, interactionMember: GuildMember): Promise<any[]> {
@@ -110,8 +107,7 @@ export class MariaDB {
     const isBanned = banList?.some(ban => ban.user.id === targetUserId) ?? false
     return this.query(`UPDATE talks
     SET user_banned=${isBanned}, last_ban_mod_id=${interactionMember.user.id}
-    WHERE message_id=${message.id} AND user_id=${targetUserId}
-    `)
+    WHERE message_id=${message.id} AND user_id=${targetUserId}`)
   }
 
   public async selectTalkCountByUser(targetUserId: string): Promise<any[]> {
