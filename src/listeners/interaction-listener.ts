@@ -462,7 +462,7 @@ async function createModalBuilder(
   targetUserName: string,
   buttonInteraction: ButtonInteraction,
   summaryMessage: string
-) {
+): Promise<void> {
   const [prefix, suffix] = customId.split('-')
   const capitalizedPrefix = prefix.charAt(0).toUpperCase() + prefix.slice(1)
 
@@ -482,22 +482,32 @@ async function createModalBuilder(
     .setTitle(`${capitalizedPrefix} ${targetUserName}`)
     .setComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(textInputBuilder))
 
-  await buttonInteraction.showModal(modalBuilder)
+  await buttonInteraction.showModal(modalBuilder).catch(() => {})
 }
 
-export async function fixMessageIfBugged(message: Message) {
+export async function fixMessageIfBugged(message: Message): Promise<void> {
   const embed: Embed = message.embeds[0]
   const targetUserId: string = embed.fields[1].value
   const stageChannel: StageChannel = getStageChannel(message.guild!.channels.cache, embed)
   const trackingIndex = findTrackingIndex(targetUserId, stageChannel)
   const tracking: Tracking = trackingArray[trackingIndex] ?? null
   const isOnStage: boolean = message.id === tracking?.message.id
+  const components: MessageActionRowComponent[] = message.components[0].components
   if (!isOnStage && (embed.color === Colors.Green || embed.color === Colors.Yellow)) {
     const embedBuilder: EmbedBuilder = new EmbedBuilder(embed.data)
       .setColor(Colors.Red)
       .setDescription(`${embed.description} (Maybe incorrect)`)
     await message.edit({
       embeds: [embedBuilder],
+      components: [
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder(components[0].data),
+          new ButtonBuilder(components[1].data),
+          new ButtonBuilder(components[2].data),
+          new ButtonBuilder(components[3].data),
+          new ButtonBuilder(components[4].data).setDisabled(false)
+        ),
+      ],
     })
   }
 }
@@ -510,7 +520,7 @@ export async function manageSummary(
   message: Message,
   targetUserId: string,
   components: MessageActionRowComponent[]
-) {
+): Promise<void> {
   const fields: APIEmbedField[] = embed.fields
   const summaryIndex: number = fields.findIndex(field => field.name.startsWith('Summary by '))
   const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
