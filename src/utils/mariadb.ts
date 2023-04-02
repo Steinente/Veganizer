@@ -85,7 +85,7 @@ export class MariaDB {
     const fields: APIEmbedField[] = message.embeds[0].fields
     const summaryIndex: number = fields.findIndex(field => field.name.startsWith('Summary by '))
     return this.query(`UPDATE talks
-    SET summary='${fields[summaryIndex].value}', last_summary_mod_id=${interactionUser.id}
+    SET summary='${fields[summaryIndex]?.value}', last_summary_mod_id=${interactionUser.id}
     WHERE message_id=${message.id} AND user_id=${targetUserId}`)
   }
 
