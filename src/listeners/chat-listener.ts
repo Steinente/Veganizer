@@ -94,7 +94,7 @@ export default (client: Client): void => {
     }
   })
 
-  function reply(message: Message, value: string) {
+  function reply(message: Message, value: string): void {
     const sentMessage = (message.channel as TextChannel).send(`${message.author.toString()} ${value}`)
     setTimeout(() => sentMessage.then(msg => msg.delete().catch(() => {})), 15000)
   }
