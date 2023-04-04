@@ -1,7 +1,9 @@
 import {
+  ActionRow,
   ActionRowBuilder,
   APIEmbedField,
   ButtonBuilder,
+  ButtonComponent,
   ButtonInteraction,
   ChannelType,
   Client,
@@ -35,7 +37,6 @@ import {
   SERVER_ID,
   TALK_ROLE_ID,
   VOID_ROLE_ID,
-  WHITE_MARK_EMOJI_ID,
 } from '../veganizer'
 import { findTrackingIndex, trackingArray } from './voice-listener'
 
@@ -59,7 +60,8 @@ export default (client: Client): void => {
       const targetUser = client.users.cache.get(targetUserId)
       const targetUserName: string = targetUser?.username ?? ''
       const targetMember = await guild.members.fetch(targetUserId).catch(() => {})
-      const components: MessageActionRowComponent[] = message.components[0].components
+      const modComponents: MessageActionRowComponent[] = message.components[0].components
+      const additionalActionRow: ActionRow<ButtonComponent> = message.components[1] as ActionRow<ButtonComponent>
       const label: string = buttonInteraction.component.label!
       const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
       const trackingIndex: number = findTrackingIndex(targetUserId, stageChannel)
@@ -88,34 +90,38 @@ export default (client: Client): void => {
               if (label === 'Add Talk') {
                 if (hasTalk) {
                   await buttonInteraction.reply({ content: 'User already has Talk.', ephemeral: true }).then(() => {
-                    if (isOnStage) tracking.buttonBuilders[1].setLabel('Remove Talk')
+                    if (isOnStage) tracking.actionRowBuilders[0].components[1].setLabel('Remove Talk')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
-                          new ButtonBuilder(components[0].data),
-                          new ButtonBuilder(components[1].data).setLabel('Remove Talk'),
-                          new ButtonBuilder(components[2].data),
-                          new ButtonBuilder(components[3].data),
-                          new ButtonBuilder(components[4].data)
+                          new ButtonBuilder(modComponents[0].data),
+                          new ButtonBuilder(modComponents[1].data).setLabel('Remove Talk'),
+                          new ButtonBuilder(modComponents[2].data),
+                          new ButtonBuilder(modComponents[3].data),
+                          new ButtonBuilder(modComponents[4].data)
                         ),
+                        additionalActionRow,
                       ],
                     })
                   })
                 } else {
                   await targetMember.roles.add(talkRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Added Talk')
-                    if (isOnStage) tracking.buttonBuilders[1].setLabel('Remove Talk')
+                    if (isOnStage) tracking.actionRowBuilders[0].components[1].setLabel('Remove Talk')
                     const newEmbedBuilder: EmbedBuilder = getColoredEmbed(embed, isOnStage, tracking)
                     message.edit({
                       embeds: [newEmbedBuilder],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
-                          new ButtonBuilder(components[0].data),
-                          new ButtonBuilder(components[1].data).setLabel('Remove Talk'),
-                          new ButtonBuilder(components[2].data),
-                          new ButtonBuilder(components[3].data),
-                          new ButtonBuilder(components[4].data).setDisabled(newEmbedBuilder.data.color === Colors.Blue)
+                          new ButtonBuilder(modComponents[0].data),
+                          new ButtonBuilder(modComponents[1].data).setLabel('Remove Talk'),
+                          new ButtonBuilder(modComponents[2].data),
+                          new ButtonBuilder(modComponents[3].data),
+                          new ButtonBuilder(modComponents[4].data).setDisabled(
+                            newEmbedBuilder.data.color === Colors.Blue
+                          )
                         ),
+                        additionalActionRow,
                       ],
                     })
                     mariaDB.updateTalkOnRoleChange(message, targetMember, member, 'talk')
@@ -126,18 +132,21 @@ export default (client: Client): void => {
                 if (hasTalk) {
                   await targetMember.roles.remove(talkRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Removed Talk')
-                    if (isOnStage) tracking.buttonBuilders[1].setLabel('Add Talk')
+                    if (isOnStage) tracking.actionRowBuilders[0].components[1].setLabel('Add Talk')
                     const newEmbedBuilder: EmbedBuilder = getColoredEmbed(embed, isOnStage, tracking)
                     message.edit({
                       embeds: [newEmbedBuilder],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
-                          new ButtonBuilder(components[0].data),
-                          new ButtonBuilder(components[1].data).setLabel('Add Talk'),
-                          new ButtonBuilder(components[2].data),
-                          new ButtonBuilder(components[3].data),
-                          new ButtonBuilder(components[4].data).setDisabled(newEmbedBuilder.data.color === Colors.Blue)
+                          new ButtonBuilder(modComponents[0].data),
+                          new ButtonBuilder(modComponents[1].data).setLabel('Add Talk'),
+                          new ButtonBuilder(modComponents[2].data),
+                          new ButtonBuilder(modComponents[3].data),
+                          new ButtonBuilder(modComponents[4].data).setDisabled(
+                            newEmbedBuilder.data.color === Colors.Blue
+                          )
                         ),
+                        additionalActionRow,
                       ],
                     })
                     mariaDB.updateTalkOnRoleChange(message, targetMember, member, 'talk')
@@ -145,16 +154,17 @@ export default (client: Client): void => {
                   })
                 } else {
                   await buttonInteraction.reply({ content: "User doesn't have Talk.", ephemeral: true }).then(() => {
-                    if (isOnStage) tracking.buttonBuilders[1].setLabel('Add Talk')
+                    if (isOnStage) tracking.actionRowBuilders[0].components[1].setLabel('Add Talk')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
-                          new ButtonBuilder(components[0].data),
-                          new ButtonBuilder(components[1].data).setLabel('Add Talk'),
-                          new ButtonBuilder(components[2].data),
-                          new ButtonBuilder(components[3].data),
-                          new ButtonBuilder(components[4].data)
+                          new ButtonBuilder(modComponents[0].data),
+                          new ButtonBuilder(modComponents[1].data).setLabel('Add Talk'),
+                          new ButtonBuilder(modComponents[2].data),
+                          new ButtonBuilder(modComponents[3].data),
+                          new ButtonBuilder(modComponents[4].data)
                         ),
+                        additionalActionRow,
                       ],
                     })
                   })
@@ -171,16 +181,17 @@ export default (client: Client): void => {
               if (label === 'Add Void') {
                 if (hasVoid) {
                   await buttonInteraction.reply({ content: 'User already has Void.', ephemeral: true }).then(() => {
-                    if (isOnStage) tracking.buttonBuilders[2].setLabel('Remove Void')
+                    if (isOnStage) tracking.actionRowBuilders[0].components[2].setLabel('Remove Void')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
-                          new ButtonBuilder(components[0].data),
-                          new ButtonBuilder(components[1].data),
-                          new ButtonBuilder(components[2].data).setLabel('Remove Void'),
-                          new ButtonBuilder(components[3].data),
-                          new ButtonBuilder(components[4].data)
+                          new ButtonBuilder(modComponents[0].data),
+                          new ButtonBuilder(modComponents[1].data),
+                          new ButtonBuilder(modComponents[2].data).setLabel('Remove Void'),
+                          new ButtonBuilder(modComponents[3].data),
+                          new ButtonBuilder(modComponents[4].data)
                         ),
+                        additionalActionRow,
                       ],
                     })
                   })
@@ -188,20 +199,23 @@ export default (client: Client): void => {
                   await targetMember.roles.add(voidRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Added Void')
                     if (isOnStage) {
-                      tracking.buttonBuilders[1].setLabel('Add Talk')
-                      tracking.buttonBuilders[2].setLabel('Remove Void')
+                      tracking.actionRowBuilders[0].components[1].setLabel('Add Talk')
+                      tracking.actionRowBuilders[0].components[2].setLabel('Remove Void')
                     }
                     const newEmbedBuilder: EmbedBuilder = getColoredEmbed(embed, isOnStage, tracking)
                     message.edit({
                       embeds: [newEmbedBuilder],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
-                          new ButtonBuilder(components[0].data),
-                          new ButtonBuilder(components[1].data).setLabel('Add Talk'),
-                          new ButtonBuilder(components[2].data).setLabel('Remove Void'),
-                          new ButtonBuilder(components[3].data),
-                          new ButtonBuilder(components[4].data).setDisabled(newEmbedBuilder.data.color === Colors.Blue)
+                          new ButtonBuilder(modComponents[0].data),
+                          new ButtonBuilder(modComponents[1].data).setLabel('Add Talk'),
+                          new ButtonBuilder(modComponents[2].data).setLabel('Remove Void'),
+                          new ButtonBuilder(modComponents[3].data),
+                          new ButtonBuilder(modComponents[4].data).setDisabled(
+                            newEmbedBuilder.data.color === Colors.Blue
+                          )
                         ),
+                        additionalActionRow,
                       ],
                     })
                     targetMember.roles.remove(newRole).then(() => {
@@ -216,18 +230,21 @@ export default (client: Client): void => {
                 if (hasVoid) {
                   await targetMember.roles.remove(voidRole).then(() => {
                     appendLog(message, embed, user, targetUserId, 'Removed Void')
-                    if (isOnStage) tracking.buttonBuilders[2].setLabel('Add Void')
+                    if (isOnStage) tracking.actionRowBuilders[0].components[2].setLabel('Add Void')
                     const newEmbedBuilder: EmbedBuilder = getColoredEmbed(embed, isOnStage, tracking)
                     message.edit({
                       embeds: [newEmbedBuilder],
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
-                          new ButtonBuilder(components[0].data),
-                          new ButtonBuilder(components[1].data),
-                          new ButtonBuilder(components[2].data).setLabel('Add Void'),
-                          new ButtonBuilder(components[3].data),
-                          new ButtonBuilder(components[4].data).setDisabled(newEmbedBuilder.data.color === Colors.Blue)
+                          new ButtonBuilder(modComponents[0].data),
+                          new ButtonBuilder(modComponents[1].data),
+                          new ButtonBuilder(modComponents[2].data).setLabel('Add Void'),
+                          new ButtonBuilder(modComponents[3].data),
+                          new ButtonBuilder(modComponents[4].data).setDisabled(
+                            newEmbedBuilder.data.color === Colors.Blue
+                          )
                         ),
+                        additionalActionRow,
                       ],
                     })
                     mariaDB.updateTalkOnRoleChange(message, targetMember, member, 'void')
@@ -235,16 +252,17 @@ export default (client: Client): void => {
                   })
                 } else {
                   await buttonInteraction.reply({ content: "User doesn't have Void.", ephemeral: true }).then(() => {
-                    if (isOnStage) tracking.buttonBuilders[2].setLabel('Add Void')
+                    if (isOnStage) tracking.actionRowBuilders[0].components[2].setLabel('Add Void')
                     message.edit({
                       components: [
                         new ActionRowBuilder<ButtonBuilder>().addComponents(
-                          new ButtonBuilder(components[0].data),
-                          new ButtonBuilder(components[1].data),
-                          new ButtonBuilder(components[2].data).setLabel('Add Void'),
-                          new ButtonBuilder(components[3].data),
-                          new ButtonBuilder(components[4].data)
+                          new ButtonBuilder(modComponents[0].data),
+                          new ButtonBuilder(modComponents[1].data),
+                          new ButtonBuilder(modComponents[2].data).setLabel('Add Void'),
+                          new ButtonBuilder(modComponents[3].data),
+                          new ButtonBuilder(modComponents[4].data)
                         ),
+                        additionalActionRow,
                       ],
                     })
                   })
@@ -260,16 +278,17 @@ export default (client: Client): void => {
             if (label === 'Ban') {
               if (isBanned) {
                 await buttonInteraction.reply({ content: 'User is already banned.', ephemeral: true }).then(() => {
-                  if (isOnStage) tracking.buttonBuilders[3].setLabel('Unban')
+                  if (isOnStage) tracking.actionRowBuilders[0].components[3].setLabel('Unban')
                   message.edit({
                     components: [
                       new ActionRowBuilder<ButtonBuilder>().addComponents(
-                        new ButtonBuilder(components[0].data),
-                        new ButtonBuilder(components[1].data),
-                        new ButtonBuilder(components[2].data),
-                        new ButtonBuilder(components[3].data).setLabel('Unban'),
-                        new ButtonBuilder(components[4].data)
+                        new ButtonBuilder(modComponents[0].data),
+                        new ButtonBuilder(modComponents[1].data),
+                        new ButtonBuilder(modComponents[2].data),
+                        new ButtonBuilder(modComponents[3].data).setLabel('Unban'),
+                        new ButtonBuilder(modComponents[4].data)
                       ),
+                      additionalActionRow,
                     ],
                   })
                 })
@@ -287,17 +306,18 @@ export default (client: Client): void => {
               if (isBanned) {
                 guild.members.unban(targetUserId).then(() => {
                   appendLog(message, embed, user, targetUserId, 'Unbanned')
-                  if (isOnStage) tracking.buttonBuilders[3].setLabel('Ban')
+                  if (isOnStage) tracking.actionRowBuilders[0].components[3].setLabel('Ban')
                   message.edit({
                     embeds: [embed],
                     components: [
                       new ActionRowBuilder<ButtonBuilder>().addComponents(
-                        new ButtonBuilder(components[0].data),
-                        new ButtonBuilder(components[1].data),
-                        new ButtonBuilder(components[2].data),
-                        new ButtonBuilder(components[3].data).setLabel('Ban'),
-                        new ButtonBuilder(components[4].data)
+                        new ButtonBuilder(modComponents[0].data),
+                        new ButtonBuilder(modComponents[1].data),
+                        new ButtonBuilder(modComponents[2].data),
+                        new ButtonBuilder(modComponents[3].data).setLabel('Ban'),
+                        new ButtonBuilder(modComponents[4].data)
                       ),
+                      additionalActionRow,
                     ],
                   })
                   mariaDB.updateTalkOnBan(message, targetUserId, member)
@@ -305,16 +325,17 @@ export default (client: Client): void => {
                 })
               } else {
                 await buttonInteraction.reply({ content: 'User is already unbanned.', ephemeral: true }).then(() => {
-                  if (isOnStage) tracking.buttonBuilders[3].setLabel('Ban')
+                  if (isOnStage) tracking.actionRowBuilders[0].components[3].setLabel('Ban')
                   message.edit({
                     components: [
                       new ActionRowBuilder<ButtonBuilder>().addComponents(
-                        new ButtonBuilder(components[0].data),
-                        new ButtonBuilder(components[1].data),
-                        new ButtonBuilder(components[2].data),
-                        new ButtonBuilder(components[3].data).setLabel('Ban'),
-                        new ButtonBuilder(components[4].data)
+                        new ButtonBuilder(modComponents[0].data),
+                        new ButtonBuilder(modComponents[1].data),
+                        new ButtonBuilder(modComponents[2].data),
+                        new ButtonBuilder(modComponents[3].data).setLabel('Ban'),
+                        new ButtonBuilder(modComponents[4].data)
                       ),
+                      additionalActionRow,
                     ],
                   })
                 })
@@ -322,29 +343,32 @@ export default (client: Client): void => {
             }
           } else replyNoPermissions(buttonInteraction)
           break
-        default:
-          if (buttonInteraction.component.emoji?.id === WHITE_MARK_EMOJI_ID) {
-            if (
-              permissions.has(MANAGE_ROLES_PERMISSION) &&
-              member.roles.highest.comparePositionTo(voidRole) &&
-              member.roles.highest.comparePositionTo(talkRole)
-            ) {
-              if (isOnStage) tracking.buttonBuilders[4].setDisabled()
-              message.edit({
-                embeds: [getColoredEmbed(embed, isOnStage, tracking)],
-                components: [
-                  new ActionRowBuilder<ButtonBuilder>().addComponents(
-                    new ButtonBuilder(components[0].data),
-                    new ButtonBuilder(components[1].data),
-                    new ButtonBuilder(components[2].data),
-                    new ButtonBuilder(components[3].data),
-                    new ButtonBuilder(components[4].data).setDisabled()
-                  ),
-                ],
-              })
-              buttonInteraction.deferUpdate()
-            } else replyNoPermissions(buttonInteraction)
-          }
+        case 'mod-button':
+          if (
+            permissions.has(MANAGE_ROLES_PERMISSION) &&
+            member.roles.highest.comparePositionTo(voidRole) &&
+            member.roles.highest.comparePositionTo(talkRole)
+          ) {
+            if (isOnStage) tracking.actionRowBuilders[0].components[4].setDisabled()
+            message.edit({
+              embeds: [getColoredEmbed(embed, isOnStage, tracking)],
+              components: [
+                new ActionRowBuilder<ButtonBuilder>().addComponents(
+                  new ButtonBuilder(modComponents[0].data),
+                  new ButtonBuilder(modComponents[1].data),
+                  new ButtonBuilder(modComponents[2].data),
+                  new ButtonBuilder(modComponents[3].data),
+                  new ButtonBuilder(modComponents[4].data).setDisabled()
+                ),
+                additionalActionRow,
+              ],
+            })
+            buttonInteraction.deferUpdate()
+          } else replyNoPermissions(buttonInteraction)
+          break
+        case 'legend-button':
+          const legend: string = `__**Legende:**__\n:green_circle: User befindet sich derzeit auf der Stage.\n:yellow_circle: User befindet sich seit über einer Stunde auf der Stage.\n:red_circle: Tracking-Nachricht muss moderiert werden.\n:blue_circle: Keine Interaktion notwendig.`
+          await buttonInteraction.reply({ content: legend, ephemeral: true })
           break
       }
       fixMessageIfBugged(message)
@@ -353,7 +377,7 @@ export default (client: Client): void => {
       const message: Message = modalSubmitInteraction.message!
       const embed: Embed = message.embeds[0]
       const targetUserId: string = embed.fields[1].value
-      const components: MessageActionRowComponent[] = message.components[0].components
+      const modComponents: MessageActionRowComponent[] = message.components[0].components
       const stageChannel: StageChannel = getStageChannel(guild.channels.cache, embed)
       const trackingIndex = findTrackingIndex(targetUserId, stageChannel)
       const tracking: Tracking = trackingArray[trackingIndex] ?? null
@@ -368,7 +392,7 @@ export default (client: Client): void => {
             embed,
             message,
             targetUserId,
-            components
+            modComponents
           )
           modalSubmitInteraction.deferUpdate()
           break
@@ -376,19 +400,20 @@ export default (client: Client): void => {
           guild.members.ban(targetUserId).then(() => {
             appendLog(message, embed, user, targetUserId, 'Banned')
             if (isOnStage) {
-              tracking.buttonBuilders[3].setLabel('Unban')
-              tracking.buttonBuilders[4].setDisabled()
+              tracking.actionRowBuilders[0].components[3].setLabel('Unban')
+              tracking.actionRowBuilders[0].components[4].setDisabled()
             }
             message.edit({
               embeds: [getColoredEmbed(embed, isOnStage, tracking, true)],
               components: [
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
-                  new ButtonBuilder(components[0].data),
-                  new ButtonBuilder(components[1].data),
-                  new ButtonBuilder(components[2].data),
-                  new ButtonBuilder(components[3].data).setLabel('Unban'),
-                  new ButtonBuilder(components[4].data).setDisabled()
+                  new ButtonBuilder(modComponents[0].data),
+                  new ButtonBuilder(modComponents[1].data),
+                  new ButtonBuilder(modComponents[2].data),
+                  new ButtonBuilder(modComponents[3].data).setLabel('Unban'),
+                  new ButtonBuilder(modComponents[4].data).setDisabled()
                 ),
+                message.components[1],
               ],
             })
             mariaDB.updateTalkOnBan(message, targetUserId, member)
@@ -492,7 +517,7 @@ export async function fixMessageIfBugged(message: Message): Promise<void> {
   const trackingIndex = findTrackingIndex(targetUserId, stageChannel)
   const tracking: Tracking = trackingArray[trackingIndex] ?? null
   const isOnStage: boolean = message.id === tracking?.message.id
-  const components: MessageActionRowComponent[] = message.components[0].components
+  const modComponents: MessageActionRowComponent[] = message.components[0].components
   if (!isOnStage && (embed.color === Colors.Green || embed.color === Colors.Yellow)) {
     const embedBuilder: EmbedBuilder = new EmbedBuilder(embed.data)
       .setColor(Colors.Red)
@@ -501,12 +526,13 @@ export async function fixMessageIfBugged(message: Message): Promise<void> {
       embeds: [embedBuilder],
       components: [
         new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder(components[0].data),
-          new ButtonBuilder(components[1].data),
-          new ButtonBuilder(components[2].data),
-          new ButtonBuilder(components[3].data),
-          new ButtonBuilder(components[4].data).setDisabled(false)
+          new ButtonBuilder(modComponents[0].data),
+          new ButtonBuilder(modComponents[1].data),
+          new ButtonBuilder(modComponents[2].data),
+          new ButtonBuilder(modComponents[3].data),
+          new ButtonBuilder(modComponents[4].data).setDisabled(false)
         ),
+        message.components[1],
       ],
     })
   }
@@ -519,7 +545,7 @@ export async function manageSummary(
   embed: Embed,
   message: Message,
   targetUserId: string,
-  components: MessageActionRowComponent[]
+  modComponents: MessageActionRowComponent[]
 ): Promise<void> {
   const fields: APIEmbedField[] = embed.fields
   const summaryIndex: number = fields.findIndex(field => field.name.startsWith('Summary by '))
@@ -550,18 +576,19 @@ export async function manageSummary(
     }
 
     appendLog(message, embed, user, targetUserId, 'Added Summary')
-    if (isOnStage) tracking.buttonBuilders[0].setLabel('Edit Summary')
+    if (isOnStage) tracking.actionRowBuilders[0].components[0].setLabel('Edit Summary')
     await message
       .edit({
         embeds: [embed.color === Colors.Blue ? new EmbedBuilder(embed.data).setColor(Colors.Red) : embed],
         components: [
           new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder(components[0].data).setLabel('Edit Summary'),
-            new ButtonBuilder(components[1].data),
-            new ButtonBuilder(components[2].data),
-            new ButtonBuilder(components[3].data),
-            new ButtonBuilder(components[4].data).setDisabled(embed.color === Colors.Green)
+            new ButtonBuilder(modComponents[0].data).setLabel('Edit Summary'),
+            new ButtonBuilder(modComponents[1].data),
+            new ButtonBuilder(modComponents[2].data),
+            new ButtonBuilder(modComponents[3].data),
+            new ButtonBuilder(modComponents[4].data).setDisabled(embed.color === Colors.Green)
           ),
+          message.components[1],
         ],
       })
       .then(() => mariaDB.updateTalkOnSummary(message, targetUserId, user))
@@ -574,12 +601,13 @@ export async function manageSummary(
         embeds: [embed.color === Colors.Blue ? new EmbedBuilder(embed.data).setColor(Colors.Red) : embed],
         components: [
           new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder(components[0].data),
-            new ButtonBuilder(components[1].data),
-            new ButtonBuilder(components[2].data),
-            new ButtonBuilder(components[3].data),
-            new ButtonBuilder(components[4].data).setDisabled(embed.color === Colors.Green)
+            new ButtonBuilder(modComponents[0].data),
+            new ButtonBuilder(modComponents[1].data),
+            new ButtonBuilder(modComponents[2].data),
+            new ButtonBuilder(modComponents[3].data),
+            new ButtonBuilder(modComponents[4].data).setDisabled(embed.color === Colors.Green)
           ),
+          message.components[1],
         ],
       })
       .then(() => mariaDB.updateTalkOnSummary(message, targetUserId, user))

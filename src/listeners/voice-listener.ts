@@ -16,14 +16,7 @@ import {
   User,
 } from 'discord.js'
 import Tracking from '../interfaces/tracking'
-import {
-  mariaDB,
-  SERVER_ID,
-  STAGE_TRACKING_CHANNEL_ID,
-  TALK_ROLE_ID,
-  VOID_ROLE_ID,
-  WHITE_MARK_EMOJI_ID,
-} from '../veganizer'
+import { mariaDB, SERVER_ID, STAGE_TRACKING_CHANNEL_ID, TALK_ROLE_ID, VOID_ROLE_ID } from '../veganizer'
 
 export const trackingArray: Tracking[] = []
 
@@ -74,21 +67,36 @@ export default (client: Client): void => {
         if (initialTalkButton.data.label === 'Remove Talk' && initialVoidButton.data.label === 'Remove Void') break
       }
 
-      const buttonBuilders: ButtonBuilder[] = [
-        new ButtonBuilder().setCustomId('summary-button').setLabel('Add Summary').setStyle(ButtonStyle.Primary),
-        initialTalkButton,
-        initialVoidButton,
-        new ButtonBuilder().setCustomId('ban-button').setLabel('Ban').setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-          .setCustomId('mod-button')
-          .setEmoji(WHITE_MARK_EMOJI_ID)
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(),
+      const actionRowBuilders: ActionRowBuilder<ButtonBuilder>[] = [
+        // ModerationActionRow
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder().setCustomId('summary-button').setLabel('Add Summary').setStyle(ButtonStyle.Primary),
+          initialTalkButton,
+          initialVoidButton,
+          new ButtonBuilder().setCustomId('ban-button').setLabel('Ban').setStyle(ButtonStyle.Danger),
+          new ButtonBuilder()
+            .setCustomId('mod-button')
+            .setEmoji('1089867992189382667')
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled()
+        ),
+        // AdditionalActionRow
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId('legend-button')
+            .setEmoji('1092740381491339314')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId('stats-button')
+            .setEmoji('1092740397077381130')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled()
+        ),
       ]
       const message: Message = await (newState.guild.channels.cache.get(STAGE_TRACKING_CHANNEL_ID) as TextChannel).send(
         {
           embeds: [embedBuilder],
-          components: [new ActionRowBuilder<ButtonBuilder>().addComponents(buttonBuilders)],
+          components: actionRowBuilders,
         }
       )
 
@@ -97,7 +105,7 @@ export default (client: Client): void => {
         channel,
         message,
         embedBuilder,
-        buttonBuilders,
+        actionRowBuilders,
         startTime: new Date().getTime(),
         timer: null,
       }
@@ -128,7 +136,7 @@ export function onLeaveStage(tracking: Tracking): void {
   const fields: APIEmbedField[] = tracking.embedBuilder.data.fields!
   if (fields.length > 2 && fields[2].name.startsWith('Summary by ')) {
     tracking.embedBuilder.setColor(Colors.Red)
-    tracking.buttonBuilders[4].setDisabled(false)
+    tracking.actionRowBuilders[0].components[4].setDisabled(false)
   } else tracking.embedBuilder.setColor(Colors.Blue)
   updateTrackingMessage(tracking, true)
   clear(tracking)
@@ -143,10 +151,10 @@ function startTrackingMessageTimer(newTracking: Tracking): void {
   if (trackingIndex === -1) return
   const tracking: Tracking = trackingArray[trackingIndex]
 
-  tracking.timer = setInterval(() => updateTrackingMessage(tracking, false), 5 * 1000)
+  tracking.timer = setInterval(() => updateTrackingMessage(tracking), 5 * 1000)
 }
 
-function updateTrackingMessage(tracking: Tracking, isLeaving: boolean): void {
+function updateTrackingMessage(tracking: Tracking, isLeaving: boolean = false): void {
   const descriptionWithoutTime = tracking.embedBuilder.data.description!.replace(/\d{2}:\d{2}:\d{2}/, '')
   const secs = Math.floor((Date.now() - tracking.startTime) / 1000)
   const min = Math.floor((secs % 3600) / 60)
@@ -164,7 +172,7 @@ async function updateTrackingMessageEmbed(tracking: Tracking, isLeaving: boolean
   tracking.message
     .edit({
       embeds: [tracking.embedBuilder],
-      components: [new ActionRowBuilder<ButtonBuilder>().addComponents(tracking.buttonBuilders)],
+      components: tracking.actionRowBuilders,
     })
     .then(message => (tracking.message = message))
     .catch(() => clear(tracking))

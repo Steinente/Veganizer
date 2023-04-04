@@ -27,7 +27,6 @@ export const STAGE_MODERATION_CHANNEL_ID: string = process.env.STAGE_MODERATION_
 export const MOVE_MEMBERS_PERMISSION: bigint = PermissionFlagsBits.MoveMembers
 export const MANAGE_ROLES_PERMISSION: bigint = PermissionFlagsBits.ManageRoles
 export const BAN_MEMBERS_PERMISSION: bigint = PermissionFlagsBits.BanMembers
-export const WHITE_MARK_EMOJI_ID: string = '1089867992189382667'
 export let moderationMessage: Message<true>
 
 const client = new Client({
