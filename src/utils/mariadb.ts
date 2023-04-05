@@ -68,6 +68,12 @@ export class MariaDB {
     return this.query(`SELECT * FROM talks`)
   }
 
+  public async selectTalkCountByUserId(targetUserId: string): Promise<any[]> {
+    return this.query(`SELECT count(message_id) FROM talks WHERE user_id=? AND user_time_on_stage >= 60`, [
+      targetUserId,
+    ])
+  }
+
   public async insertTalk(message: Message, member: GuildMember): Promise<any[]> {
     return this.query(
       `INSERT INTO talks
@@ -124,12 +130,6 @@ export class MariaDB {
       isBanned,
       interactionMember.user.id,
       message.id,
-      targetUserId,
-    ])
-  }
-
-  public async selectTalkCountByUserId(targetUserId: string): Promise<any[]> {
-    return this.query(`SELECT count(message_id) FROM talks WHERE user_id=? AND user_time_on_stage >= 60`, [
       targetUserId,
     ])
   }
