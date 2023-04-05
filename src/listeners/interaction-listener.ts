@@ -27,6 +27,7 @@ import {
   TextInputStyle,
   User,
 } from 'discord.js'
+import Talk from 'src/interfaces/talk'
 import Tracking from 'src/interfaces/tracking'
 import {
   BAN_MEMBERS_PERMISSION,
@@ -370,6 +371,29 @@ export default (client: Client): void => {
           const legend: string = `__**Legende:**__\n:green_circle: User befindet sich derzeit auf der Stage.\n:yellow_circle: User befindet sich seit über einer Stunde auf der Stage.\n:red_circle: Tracking-Nachricht muss moderiert werden.\n:blue_circle: Keine Interaktion notwendig.`
           await buttonInteraction.reply({ content: legend, ephemeral: true })
           break
+        case 'stats-button':
+          const talks: Talk[] = await mariaDB.selectTalks()
+          let timeOnStage: number = 0
+          let talksWithTime: number = 0
+          let talkNumber: number = 0
+          let voidNumber: number = 0
+          let banNumber: number = 0
+          talks.forEach(talk => {
+            if (talk.user_time_on_stage) {
+              timeOnStage += talk.user_time_on_stage
+              talksWithTime++
+            }
+            if (talk.last_void_mod_id && talk.user_roles?.includes('void')) voidNumber++
+            if (talk.last_talk_mod_id && talk.user_roles?.includes('Talk')) talkNumber++
+            if (talk.last_ban_mod_id) banNumber++
+          })
+          const stats: string = `__**Stats:**__\nAnzahl Gespräche: ${
+            talks.length
+          }\nDurchschnittliche Gesprächsdauer in Sekunden: ${Math.round(
+            timeOnStage / talksWithTime
+          )}\nGesprächsdauer gesamt in Sekunden: ${timeOnStage}\nAnzahl Talks: ${talkNumber}\nAnzahl Voids: ${voidNumber}\nAnzahl Bans: ${banNumber}\n\n*Statistiken seit dem 29.03.2023`
+          await buttonInteraction.reply({ content: stats, ephemeral: true })
+          break
       }
       fixMessageIfBugged(message)
     } else if (interaction.isModalSubmit()) {
@@ -586,7 +610,7 @@ export async function manageSummary(
             new ButtonBuilder(modComponents[1].data),
             new ButtonBuilder(modComponents[2].data),
             new ButtonBuilder(modComponents[3].data),
-            new ButtonBuilder(modComponents[4].data).setDisabled(embed.color === Colors.Green)
+            new ButtonBuilder(modComponents[4].data).setDisabled(isOnStage)
           ),
           message.components[1],
         ],
@@ -605,7 +629,7 @@ export async function manageSummary(
             new ButtonBuilder(modComponents[1].data),
             new ButtonBuilder(modComponents[2].data),
             new ButtonBuilder(modComponents[3].data),
-            new ButtonBuilder(modComponents[4].data).setDisabled(embed.color === Colors.Green)
+            new ButtonBuilder(modComponents[4].data).setDisabled(isOnStage)
           ),
           message.components[1],
         ],
