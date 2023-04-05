@@ -22,6 +22,7 @@ export const SERVER_ID: string = process.env.SERVER_ID!
 export const NEW_ROLE_ID: string = process.env.NEW_ROLE_ID!
 export const TALK_ROLE_ID: string = process.env.TALK_ROLE_ID!
 export const VOID_ROLE_ID: string = process.env.VOID_ROLE_ID!
+export const BOT_APPROVED_ROLE_ID: string = process.env.BOT_APPROVED_ROLE_ID!
 export const STAGE_TRACKING_CHANNEL_ID: string = process.env.STAGE_TRACKING_CHANNEL_ID!
 export const STAGE_MODERATION_CHANNEL_ID: string = process.env.STAGE_MODERATION_CHANNEL_ID!
 export const MOVE_MEMBERS_PERMISSION: bigint = PermissionFlagsBits.MoveMembers
