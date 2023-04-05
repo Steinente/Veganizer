@@ -16,7 +16,14 @@ import {
   User,
 } from 'discord.js'
 import Tracking from '../interfaces/tracking'
-import { mariaDB, SERVER_ID, STAGE_TRACKING_CHANNEL_ID, TALK_ROLE_ID, VOID_ROLE_ID } from '../veganizer'
+import {
+  BOT_APPROVED_ROLE_ID,
+  mariaDB,
+  SERVER_ID,
+  STAGE_TRACKING_CHANNEL_ID,
+  TALK_ROLE_ID,
+  VOID_ROLE_ID,
+} from '../veganizer'
 
 export const trackingArray: Tracking[] = []
 
@@ -37,8 +44,10 @@ export default (client: Client): void => {
       const embedBuilder: EmbedBuilder = new EmbedBuilder()
         .setTitle(`${member.displayName} joined ${member.voice.channel!.name}`)
         .setDescription(
-          `Number past Stages: ${
-            (await mariaDB.selectTalkCountByUser(user.id))[0]['count(message_id)']
+          `${
+            member.roles.cache.has(BOT_APPROVED_ROLE_ID) ? ':exclamation: **BOT APPROVED** :exclamation:\n\n' : ''
+          }Number past Stages: ${
+            (await mariaDB.selectTalkCountByUserId(user.id))[0]['count(message_id)']
           }\nTime on Stage: 00:00:00`
         )
         .setTimestamp(new Date())
@@ -90,7 +99,6 @@ export default (client: Client): void => {
             .setCustomId('stats-button')
             .setEmoji('1092740397077381130')
             .setStyle(ButtonStyle.Secondary)
-            .setDisabled()
         ),
       ]
       const message: Message = await (newState.guild.channels.cache.get(STAGE_TRACKING_CHANNEL_ID) as TextChannel).send(
