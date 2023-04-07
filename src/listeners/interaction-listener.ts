@@ -36,6 +36,7 @@ import {
   MOVE_MEMBERS_PERMISSION,
   NEW_ROLE_ID,
   SERVER_ID,
+  STAGE_TRACKING_CHANNEL_ID,
   TALK_ROLE_ID,
   VOID_ROLE_ID,
 } from '../veganizer'
@@ -60,7 +61,7 @@ export default (client: Client): void => {
       const targetUserId: string = fields[1].value
       const targetUser = client.users.cache.get(targetUserId)
       const targetUserName: string = targetUser?.username ?? ''
-      const targetMember = await guild.members.fetch(targetUserId).catch(() => {})
+      const targetMember: GuildMember = (await guild.members.fetch(targetUserId).catch(() => {})) as GuildMember
       const modComponents: MessageActionRowComponent[] = message.components[0].components
       const additionalActionRow: ActionRow<ButtonComponent> = message.components[1] as ActionRow<ButtonComponent>
       const label: string = buttonInteraction.component.label!
@@ -367,18 +368,53 @@ export default (client: Client): void => {
             buttonInteraction.deferUpdate()
           } else replyNoPermissions(buttonInteraction)
           break
+        case 'history-button':
+          const historyTalkArray: Talk[] = await mariaDB.selectTalksByUserId(targetUserId)
+          let userTimeOnStage: number = 0
+          let userTalksWithTime: number = 0
+          historyTalkArray.forEach(talk => {
+            if (talk.user_time_on_stage) {
+              userTimeOnStage += talk.user_time_on_stage
+              userTalksWithTime++
+            }
+          })
+          let history: string = `__**${targetUserName}'s History:**__\nNumber of conversations: ${
+            historyTalkArray.length
+          }\nAverage talk duration: ${getFormattedTime(
+            userTalksWithTime === 0 ? 0 : Math.round(userTimeOnStage / userTalksWithTime)
+          )}\nTotal talk time: ${getFormattedTime(userTimeOnStage)}`
+          if (historyTalkArray.length > 0) {
+            if (isOnStage) historyTalkArray.pop()
+            if (historyTalkArray.length > 0) {
+              history += `\n\n**Last conversations:**\n`
+              historyTalkArray.reverse()
+            }
+          }
+          for (let i = 0; i < historyTalkArray.length; i++) {
+            let historyTalk = historyTalkArray[i]
+            history += `> [${i + 1}] ${historyTalk.message_datetime}\n> Talk time: ${getFormattedTime(
+              historyTalk.user_time_on_stage
+            )}\n> Summary:${
+              historyTalk.summary !== null ? '\n`' + historyTalk.summary + '`' : ' -'
+            }\n> Tracking-Message: https://discord.com/channels/${SERVER_ID}/${STAGE_TRACKING_CHANNEL_ID}/${
+              historyTalk.message_id
+            }\n\n\n`
+            if (i === 2) break
+          }
+          await buttonInteraction.reply({ content: history, ephemeral: true })
+          break
         case 'legend-button':
-          const legend: string = `__**Legende:**__\n:green_circle: User befindet sich derzeit auf der Stage.\n:yellow_circle: User befindet sich seit über einer Stunde auf der Stage.\n:red_circle: Tracking-Nachricht muss moderiert werden.\n:blue_circle: Keine Interaktion notwendig.`
+          const legend: string = `__**Legend:**__\n:green_circle: User is currently on the stage.\n:yellow_circle: User has been on stage for over an hour.\n:red_circle: Tracking message must be moderated.\n:blue_circle: No interaction necessary.`
           await buttonInteraction.reply({ content: legend, ephemeral: true })
           break
         case 'stats-button':
-          const talks: Talk[] = await mariaDB.selectTalks()
+          const talkArray: Talk[] = await mariaDB.selectTalks()
           let timeOnStage: number = 0
           let talksWithTime: number = 0
           let talkNumber: number = 0
           let voidNumber: number = 0
           let banNumber: number = 0
-          talks.forEach(talk => {
+          talkArray.forEach(talk => {
             if (talk.user_time_on_stage) {
               timeOnStage += talk.user_time_on_stage
               talksWithTime++
@@ -387,11 +423,13 @@ export default (client: Client): void => {
             if (talk.last_talk_mod_id && talk.user_roles?.includes('Talk')) talkNumber++
             if (talk.last_ban_mod_id) banNumber++
           })
-          const stats: string = `__**Stats:**__\nAnzahl Gespräche: ${
-            talks.length
-          }\nDurchschnittliche Gesprächsdauer in Sekunden: ${Math.round(
-            timeOnStage / talksWithTime
-          )}\nGesprächsdauer gesamt in Sekunden: ${timeOnStage}\nAnzahl Talks: ${talkNumber}\nAnzahl Voids: ${voidNumber}\nAnzahl Bans: ${banNumber}\n\n*Statistiken seit dem 29.03.2023`
+          const stats: string = `__**Stats:**__\nNumber of conversations: ${
+            talkArray.length
+          }\nAverage talk duration: ${getFormattedTime(
+            Math.round(timeOnStage / talksWithTime)
+          )}\nTotal talk time: ${getFormattedTime(
+            timeOnStage
+          )}\nGiven talks: ${talkNumber}\nGiven voids: ${voidNumber}\nExecuted bans: ${banNumber}\n\n*Statistics since 03/29/2023`
           await buttonInteraction.reply({ content: stats, ephemeral: true })
           break
       }
@@ -645,4 +683,14 @@ function getColoredEmbed(embed: Embed, isOnStage: boolean, tracking: Tracking, i
   } else {
     return new EmbedBuilder(embed.data)
   }
+}
+
+function getFormattedTime(secs: number | null): string {
+  if (typeof secs === 'number') {
+    const min = Math.floor((secs % 3600) / 60)
+    const hours = Math.floor(secs / 3600)
+    return `${hours.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:${(secs % 60)
+      .toString()
+      .padStart(2, '0')}`
+  } else return '-'
 }

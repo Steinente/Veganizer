@@ -46,7 +46,7 @@ export default (client: Client): void => {
         .setDescription(
           `${
             member.roles.cache.has(BOT_APPROVED_ROLE_ID) ? ':exclamation: **BOT APPROVED** :exclamation:\n\n' : ''
-          }Number past Stages: ${
+          }Number talks: ${
             (await mariaDB.selectTalkCountByUserId(user.id))[0]['count(message_id)']
           }\nTime on Stage: 00:00:00`
         )
@@ -91,6 +91,10 @@ export default (client: Client): void => {
         ),
         // AdditionalActionRow
         new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId('history-button')
+            .setEmoji('1093149473695334400')
+            .setStyle(ButtonStyle.Secondary),
           new ButtonBuilder()
             .setCustomId('legend-button')
             .setEmoji('1092740381491339314')
