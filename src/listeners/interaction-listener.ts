@@ -370,6 +370,7 @@ export default (client: Client): void => {
           break
         case 'history-button':
           const historyTalkArray: Talk[] = await mariaDB.selectTalksByUserId(targetUserId)
+          if (isOnStage) historyTalkArray.pop()
           let userTimeOnStage: number = 0
           let userTalksWithTime: number = 0
           historyTalkArray.forEach(talk => {
@@ -383,13 +384,12 @@ export default (client: Client): void => {
           }\nAverage talk duration: ${getFormattedTime(
             userTalksWithTime === 0 ? 0 : Math.round(userTimeOnStage / userTalksWithTime)
           )}\nTotal talk time: ${getFormattedTime(userTimeOnStage)}`
+
           if (historyTalkArray.length > 0) {
-            if (isOnStage) historyTalkArray.pop()
-            if (historyTalkArray.length > 0) {
-              history += `\n\n**Last conversations:**\n`
-              historyTalkArray.reverse()
-            }
+            history += `\n\n**Last conversations:**\n`
+            historyTalkArray.reverse()
           }
+
           for (let i = 0; i < historyTalkArray.length; i++) {
             let historyTalk = historyTalkArray[i]
             history += `> [${i + 1}] ${historyTalk.message_datetime}\n> Talk time: ${getFormattedTime(
