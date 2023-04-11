@@ -69,15 +69,11 @@ export class MariaDB {
   }
 
   public async selectTalksByUserId(targetUserId: string): Promise<Talk[]> {
-    return this.query(`SELECT * FROM talks WHERE user_id=?`, [
-      targetUserId,
-    ])
+    return this.query(`SELECT * FROM talks WHERE user_id=?`, [targetUserId])
   }
 
   public async selectTalkCountByUserId(targetUserId: string): Promise<any[]> {
-    return this.query(`SELECT count(message_id) FROM talks WHERE user_id=? AND user_time_on_stage >= 60`, [
-      targetUserId,
-    ])
+    return this.query(`SELECT count(message_id) FROM talks WHERE user_id=?`, [targetUserId])
   }
 
   public async insertTalk(message: Message, member: GuildMember): Promise<any[]> {
@@ -108,7 +104,7 @@ export class MariaDB {
     const fields: APIEmbedField[] = message.embeds[0].fields
     const summaryIndex: number = fields.findIndex(field => field.name.startsWith('Summary by '))
     return this.query(`UPDATE talks SET summary=?, last_summary_mod_id=? WHERE message_id=? AND user_id=?`, [
-      fields[summaryIndex]?.value,
+      fields[summaryIndex]?.value ?? 'undefined/error',
       interactionUser.id,
       message.id,
       targetUserId,
