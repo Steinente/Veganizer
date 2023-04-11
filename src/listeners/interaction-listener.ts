@@ -369,68 +369,90 @@ export default (client: Client): void => {
           } else replyNoPermissions(buttonInteraction)
           break
         case 'history-button':
-          const historyTalkArray: Talk[] = await mariaDB.selectTalksByUserId(targetUserId)
-          if (isOnStage) historyTalkArray.pop()
-          let userTimeOnStage: number = 0
-          let userTalksWithTime: number = 0
-          historyTalkArray.forEach(talk => {
-            if (talk.user_time_on_stage) {
-              userTimeOnStage += talk.user_time_on_stage
-              userTalksWithTime++
+          const historyTalkArray: Talk[] = (await mariaDB.selectTalksByUserId(targetUserId)).reverse()
+          let userTimeOnStage = 0
+          const filteredTalks = historyTalkArray.filter(talk => talk.user_time_on_stage)
+
+          if (isOnStage && historyTalkArray.length) historyTalkArray.shift()
+
+          historyTalkArray.sort((a, b) => {
+            if (a.summary !== null && b.summary === null) {
+              return -1
+            } else if (a.summary === null && b.summary !== null) {
+              return 1
             }
+
+            if (a.summary !== null && b.summary !== null) {
+              return new Date(b.message_datetime).getTime() - new Date(a.message_datetime).getTime()
+            }
+
+            return new Date(b.message_datetime).getTime() - new Date(a.message_datetime).getTime()
           })
-          let history: string = `__**${targetUserName}'s History:**__\nNumber of conversations: ${
-            historyTalkArray.length
-          }\nAverage talk duration: ${getFormattedTime(
-            userTalksWithTime === 0 ? 0 : Math.round(userTimeOnStage / userTalksWithTime)
-          )}\nTotal talk time: ${getFormattedTime(userTimeOnStage)}`
 
-          if (historyTalkArray.length > 0) {
-            history += `\n\n**Last conversations:**\n`
-            historyTalkArray.reverse()
-          }
+          filteredTalks.forEach(talk => {
+            userTimeOnStage += talk.user_time_on_stage!
+          })
 
-          for (let i = 0; i < historyTalkArray.length; i++) {
-            let historyTalk = historyTalkArray[i]
-            history += `> [${i + 1}] ${historyTalk.message_datetime}\n> Talk time: ${getFormattedTime(
-              historyTalk.user_time_on_stage
-            )}\n> Summary:${
-              historyTalk.summary !== null ? '\n`' + historyTalk.summary + '`' : ' -'
-            }\n> Tracking-Message: https://discord.com/channels/${SERVER_ID}/${STAGE_TRACKING_CHANNEL_ID}/${
-              historyTalk.message_id
-            }\n\n\n`
-            if (i === 2) break
+          const history = [
+            `__**${targetUserName}'s History:**__`,
+            `Number of conversations: ${filteredTalks.length}`,
+            `Total talk time: ${getFormattedTime(userTimeOnStage)}`,
+          ]
+
+          if (historyTalkArray.length) {
+            history.push('', '**Last conversations (summary prioritized):**')
+            historyTalkArray.slice(0, 3).forEach((talk, index) => {
+              history.push(
+                `> [${index + 1}] ${talk.message_datetime}\n> Talk time: ${getFormattedTime(talk.user_time_on_stage)}`,
+                `> Summary:${
+                  talk.summary !== null ? (talk.summary.includes('\n') ? '\n' : ' ') + '`' + talk.summary + '`' : ' -'
+                }`,
+                `> Tracking-Message: https://discord.com/channels/${SERVER_ID}/${STAGE_TRACKING_CHANNEL_ID}/${talk.message_id}`,
+                '',
+                ''
+              )
+            })
           }
-          await buttonInteraction.reply({ content: history, ephemeral: true })
+          await buttonInteraction.reply({ content: history.join('\n'), ephemeral: true })
           break
         case 'legend-button':
-          const legend: string = `__**Legend:**__\n:green_circle: User is currently on the stage.\n:yellow_circle: User has been on stage for over an hour.\n:red_circle: Tracking message must be moderated.\n:blue_circle: No interaction necessary.`
-          await buttonInteraction.reply({ content: legend, ephemeral: true })
+          const legendParts: string[] = [
+            '__**Legend:**__',
+            ':green_circle: User is currently on the stage.',
+            ':yellow_circle: User has been on stage for over an hour.',
+            ':red_circle: Tracking message must be moderated.',
+            ':blue_circle: No interaction necessary.',
+          ]
+          await buttonInteraction.reply({ content: legendParts.join('\n'), ephemeral: true })
           break
         case 'stats-button':
           const talkArray: Talk[] = await mariaDB.selectTalks()
-          let timeOnStage: number = 0
-          let talksWithTime: number = 0
-          let talkNumber: number = 0
-          let voidNumber: number = 0
-          let banNumber: number = 0
-          talkArray.forEach(talk => {
-            if (talk.user_time_on_stage) {
-              timeOnStage += talk.user_time_on_stage
-              talksWithTime++
-            }
-            if (talk.last_void_mod_id && talk.user_roles?.includes('void')) voidNumber++
-            if (talk.last_talk_mod_id && talk.user_roles?.includes('Talk')) talkNumber++
-            if (talk.last_ban_mod_id) banNumber++
-          })
-          const stats: string = `__**Stats:**__\nNumber of conversations: ${
-            talkArray.length
-          }\nAverage talk duration: ${getFormattedTime(
-            Math.round(timeOnStage / talksWithTime)
-          )}\nTotal talk time: ${getFormattedTime(
-            timeOnStage
-          )}\nGiven talks: ${talkNumber}\nGiven voids: ${voidNumber}\nExecuted bans: ${banNumber}\n\n*Statistics since 03/29/2023`
-          await buttonInteraction.reply({ content: stats, ephemeral: true })
+          const { timeOnStage, talksWithTime, talkNumber, voidNumber, banNumber } = talkArray.reduce(
+            (acc, talk) => {
+              if (talk.user_time_on_stage) {
+                acc.timeOnStage += talk.user_time_on_stage
+                acc.talksWithTime++
+              }
+              if (talk.last_void_mod_id && talk.user_roles?.includes('void')) acc.voidNumber++
+              if (talk.last_talk_mod_id && talk.user_roles?.includes('Talk')) acc.talkNumber++
+              if (talk.last_ban_mod_id) acc.banNumber++
+              return acc
+            },
+            { timeOnStage: 0, talksWithTime: 0, talkNumber: 0, voidNumber: 0, banNumber: 0 }
+          )
+
+          const stats: string[] = [
+            '__**Overall Stats:**__',
+            `Number of conversations: ${talkArray.length}`,
+            `Average talk duration: ${getFormattedTime(Math.round(timeOnStage / talksWithTime))}`,
+            `Total talk time: ${getFormattedTime(timeOnStage)}`,
+            `Given talks: ${talkNumber}`,
+            `Given voids: ${voidNumber}`,
+            `Executed bans: ${banNumber}`,
+            '',
+            '*Statistics since 03/29/2023',
+          ]
+          await buttonInteraction.reply({ content: stats.join('\n'), ephemeral: true })
           break
       }
       fixMessageIfBugged(message)
