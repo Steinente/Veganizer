@@ -370,10 +370,14 @@ export default (client: Client): void => {
           break
         case 'history-button':
           const historyTalkArray: Talk[] = (await mariaDB.selectTalksByUserId(targetUserId)).reverse()
-          let userTimeOnStage = 0
-          const filteredTalks = historyTalkArray.filter(talk => talk.user_time_on_stage)
-
+          const filteredTalks: Talk[] = historyTalkArray.filter(talk => talk.user_time_on_stage)
+          const userTimeOnStage: number = filteredTalks.reduce((sum, talk) => {
+            return sum + (talk.user_time_on_stage as number)
+          }, 0)
           if (isOnStage && historyTalkArray.length) historyTalkArray.shift()
+          const lastConversation: string = historyTalkArray.length
+            ? new Date(historyTalkArray[0].message_datetime).toLocaleString()
+            : '-'
 
           historyTalkArray.sort((a, b) => {
             if (a.summary !== null && b.summary === null) {
@@ -389,21 +393,19 @@ export default (client: Client): void => {
             return new Date(b.message_datetime).getTime() - new Date(a.message_datetime).getTime()
           })
 
-          filteredTalks.forEach(talk => {
-            userTimeOnStage += talk.user_time_on_stage!
-          })
-
-          const history = [
+          const history: string[] = [
             `__**${targetUserName}'s History:**__`,
             `Number of conversations: ${filteredTalks.length}`,
+            `Last conversation: ${lastConversation}`,
             `Total talk time: ${getFormattedTime(userTimeOnStage)}`,
           ]
 
           if (historyTalkArray.length) {
             history.push('', '**Last conversations (summary prioritized):**')
-            historyTalkArray.slice(0, 3).forEach((talk, index) => {
+            historyTalkArray.slice(0, 3).forEach(talk => {
               history.push(
-                `> [${index + 1}] ${talk.message_datetime}\n> Talk time: ${getFormattedTime(talk.user_time_on_stage)}`,
+                `> Date and time: ${new Date(talk.message_datetime).toLocaleString()}`,
+                `> Talk time: ${getFormattedTime(talk.user_time_on_stage)}`,
                 `> Summary:${
                   talk.summary !== null ? (talk.summary.includes('\n') ? '\n' : ' ') + '`' + talk.summary + '`' : ' -'
                 }`,

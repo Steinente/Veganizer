@@ -17,7 +17,7 @@ import { MariaDB } from './utils/mariadb'
 
 dotenv.config({ override: true })
 
-export const mariaDB = new MariaDB()
+export const mariaDB: MariaDB = new MariaDB()
 export const SERVER_ID: string = process.env.SERVER_ID!
 export const NEW_ROLE_ID: string = process.env.NEW_ROLE_ID!
 export const TALK_ROLE_ID: string = process.env.TALK_ROLE_ID!
@@ -30,7 +30,7 @@ export const MANAGE_ROLES_PERMISSION: bigint = PermissionFlagsBits.ManageRoles
 export const BAN_MEMBERS_PERMISSION: bigint = PermissionFlagsBits.BanMembers
 export let moderationMessage: Message<true>
 
-const client = new Client({
+const client: Client<boolean> = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
@@ -50,7 +50,7 @@ client.login(process.env.TOKEN).then(() => {
   mariaDB.connect()
 })
 
-client.on('ready', async () => reloadModerationMessage())
+client.once('ready', async () => reloadModerationMessage())
 
 export async function reloadModerationMessage(): Promise<void> {
   const trackingChannel: TextChannel = client.channels.cache.get(STAGE_TRACKING_CHANNEL_ID) as TextChannel

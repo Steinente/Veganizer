@@ -22,7 +22,7 @@ import {
   SERVER_ID,
   STAGE_TRACKING_CHANNEL_ID,
   TALK_ROLE_ID,
-  VOID_ROLE_ID,
+  VOID_ROLE_ID
 } from '../veganizer'
 
 export const trackingArray: Tracking[] = []
@@ -30,12 +30,13 @@ export const trackingArray: Tracking[] = []
 export default (client: Client): void => {
   client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     if (oldState.guild.id !== SERVER_ID) return
-    if (
+    if ( // join Stage
       newState.channel?.type === ChannelType.GuildStageVoice &&
       null !== oldState.requestToSpeakTimestamp &&
       null === newState.requestToSpeakTimestamp &&
       !newState.suppress &&
-      !newState.member?.permissions.has(PermissionFlagsBits.MoveMembers)
+      !newState.member?.permissions.has(PermissionFlagsBits.MoveMembers) &&
+      !newState.member?.roles.cache.has(BOT_APPROVED_ROLE_ID)
     ) {
       const member: GuildMember = newState.member!
       const user: User = member.user
@@ -44,9 +45,7 @@ export default (client: Client): void => {
       const embedBuilder: EmbedBuilder = new EmbedBuilder()
         .setTitle(`${member.displayName} joined ${member.voice.channel!.name}`)
         .setDescription(
-          `${
-            member.roles.cache.has(BOT_APPROVED_ROLE_ID) ? ':exclamation: **BOT APPROVED** :exclamation:\n\n' : ''
-          }Number talks: ${
+          `Number conversations: ${
             (await mariaDB.selectTalkCountByUserId(user.id))[0]['count(message_id)']
           }\nTime on Stage: 00:00:00`
         )
@@ -126,8 +125,7 @@ export default (client: Client): void => {
       startTrackingMessageTimer(newTracking)
       await mariaDB.insertTalk(message, member)
     } else if (oldState.channel?.type === ChannelType.GuildStageVoice) {
-      if (
-        // leave Stage
+      if ( // leave Stage
         (!oldState.member?.permissions.has(PermissionFlagsBits.MoveMembers) &&
           null === oldState.requestToSpeakTimestamp &&
           newState.suppress) ||
@@ -144,7 +142,7 @@ export default (client: Client): void => {
   })
 }
 
-export function onLeaveStage(tracking: Tracking): void {
+function onLeaveStage(tracking: Tracking): void {
   const fields: APIEmbedField[] = tracking.embedBuilder.data.fields!
   if (fields.length > 2 && fields[2].name.startsWith('Summary by ')) {
     tracking.embedBuilder.setColor(Colors.Red)
@@ -176,7 +174,10 @@ function updateTrackingMessage(tracking: Tracking, isLeaving: boolean = false): 
       .toString()
       .padStart(2, '0')}`
   )
-  if (hours >= 1 && !isLeaving) tracking.embedBuilder.setColor(Colors.Yellow)
+  if (hours >= 1 && !isLeaving && tracking.embedBuilder.data.color !== Colors.Yellow) {
+    tracking.embedBuilder.setColor(Colors.Yellow)
+    tracking.channel.client.users.cache.get('417355342142504960')?.send(`Über eine Stunde auf der Stage -> ${tracking.message.url}`)
+  }
   updateTrackingMessageEmbed(tracking, isLeaving, secs)
 }
 
