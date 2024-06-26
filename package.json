@@ -9,6 +9,7 @@
   "author": "Steinente",
   "license": "ISC",
   "dependencies": {
+    "@discordjs/voice": "^0.16.0",
     "discord.js": "^14.8.0",
     "dotenv": "^16.0.3",
     "mariadb": "^3.1.1",
