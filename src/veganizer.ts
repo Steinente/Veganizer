@@ -42,7 +42,6 @@ const client: Client<boolean> = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.MessageContent,
   ],
 })
 
@@ -68,9 +67,12 @@ export async function reloadModerationMessage(): Promise<void> {
   const moderationTrackingMessages: Collection<string, Message<true>> = new Collection()
 
   trackingMessages.forEach(m => {
-    if (m.author.bot && m.embeds[0]?.color === Colors.Red) {
-      if (moderationTrackingMessages.size < 10) moderationTrackingMessages.set(m.id, m)
-      else return
+    if (
+      m.author.id === client.user!.id &&
+      m.embeds[0]?.color === Colors.Red &&
+      moderationTrackingMessages.size < 10
+    ) {
+      moderationTrackingMessages.set(m.id, m)
     }
   })
 
